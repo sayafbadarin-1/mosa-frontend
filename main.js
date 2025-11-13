@@ -1,5 +1,5 @@
 // main.js (نهائي وموافق مع server.js)
-const BACKEND = "http://localhost:4000"; // غيّره إلى رابط السيرفر عند النشر (مثلاً رابط Render)
+const BACKEND = "https://mosa-backend-dr63.onrender.com"; // غيّره إلى رابط السيرفر عند النشر (مثلاً رابط Render)
 let adminPass = null; // سيُملأ عند تسجيل الدخول (لا تترك سرًا مكشوفًا بالفرونت في الإنتاج)
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -263,3 +263,4 @@ function showPage(id) {
   const backBtn = document.getElementById("backBtn");
   backBtn.style.display = id === "videosPage" ? "none" : "block";
 }
+
