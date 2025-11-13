@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الشيخ موسى الخلايلة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- شاشة البداية -->
+  <div id="overlay">
+    <div class="popup">
+      <h2>صلِّ على النبي ﷺ</h2>
+      <p>قبل أن تتصفح الموقع، صلِّ وسلم على خير الأنام.</p>
+      <button id="enterBtn">اللهم صلِّ وسلم عليه</button>
+    </div>
+  </div>
+
+  <!-- الهيدر -->
+  <header class="hero">
+    <div class="overlay-hero"></div>
+    <div class="hero-content">
+      <img 
+        src="https://yt3.googleusercontent.com/co-iJ8X1CeyQWoeqU8TspcCyVNY_pPLZTP_LHpEPi73b39Pql8nAXpObTgl1Qs2Cle6IorGSyA=s160-c-k-c0x00ffffff-no-rj" 
+        alt="شعار الشيخ موسى الخلايلة" 
+        class="logo">
+      <h1>الشيخ موسى الخلايلة</h1>
+      <p>منبر علم وخير 🌙</p>
+    </div>
+  </header>
+
+  <!-- شريط التنقل -->
+  <nav class="navbar" id="navbar">
+    <a data-section="videosPage">📺 الفيديوهات</a>
+    <a data-section="booksPage">📚 المكتبة</a>
+    <a data-section="tipsPage">🌿 إرشادات ونصائح</a>
+  </nav>
+
+  <!-- زر الرجوع -->
+  <button id="backBtn" class="back-btn" style="display:none;">⬅ رجوع</button>
+
+  <!-- صفحات الأقسام -->
+  <main>
+    <!-- صفحة الفيديوهات -->
+    <section id="videosPage" class="page visible">
+      <div id="videos" class="videos-grid"></div>
+    </section>
+
+    <!-- صفحة المكتبة -->
+    <section id="booksPage" class="page">
+      <h2>📚 المكتبة</h2>
+      <form id="upload-book" class="upload-box" style="display:none;">
+        <input type="text" name="title" placeholder="اسم الكتاب" required />
+        <input type="file" name="pdf" accept=".pdf" required />
+        <button type="submit">رفع الكتاب</button>
+      </form>
+      <div id="book-list"></div>
+    </section>
+
+    <!-- صفحة الإرشادات -->
+    <section id="tipsPage" class="page">
+      <h2>🌿 إرشادات ونصائح</h2>
+      <form id="upload-tip" class="upload-box" style="display:none;">
+        <textarea name="text" placeholder="أدخل النص هنا..." rows="4" required></textarea>
+        <button type="submit">إضافة الإرشاد</button>
+      </form>
+      <div id="tip-list"></div>
+    </section>
+  </main>
+
+  <footer>
+    <button id="adminLogin">تسجيل دخول</button>
+    <p>© 2025 / 1447 هـ – موقع الشيخ موسى الخلايلة</p>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
