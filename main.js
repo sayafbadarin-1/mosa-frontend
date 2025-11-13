@@ -1,6 +1,6 @@
-// main.js (نهائي وموافق مع server.js)
-const BACKEND = "https://mosa-backend-dr63.onrender.com"; // غيّره إلى رابط السيرفر عند النشر (مثلاً رابط Render)
-let adminPass = null; // سيُملأ عند تسجيل الدخول (لا تترك سرًا مكشوفًا بالفرونت في الإنتاج)
+// main.js (نهائي ومتوافق مع server.js)
+const BACKEND = "https://mosa-backend-dr63.onrender.com"; // غيّره إلى رابط السيرفر عند النشر
+let adminPass = null; // يُملأ عند تسجيل الدخول (يحفظ مؤقتاً في الsession)
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("enterBtn").addEventListener("click", onEnter);
@@ -59,7 +59,7 @@ function escapeAttr(s) {
   return escapeHtml(s).replaceAll("\n", "");
 }
 
-/* ===== Videos (from YouTube RSS) ===== */
+/* ===== Videos ===== */
 async function loadVideos() {
   const CHANNEL_ID = "UChFRy4s3_0MVJ3Hmw2AMcoQ";
   const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
@@ -136,24 +136,44 @@ async function onUploadBook(e) {
   const title = e.target.title.value.trim();
   const url = e.target.url.value.trim();
   if (!title || !url) return alert("أكمل الحقول المطلوبة.");
+
+  const payload = { title, url };
   try {
-    const res = await fetch(`${BACKEND}/books`, {
+    // حاول المسار الحديث أولاً
+    let res = await fetch(`${BACKEND}/books`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-admin-pass": adminPass
       },
-      body: JSON.stringify({ title, url })
+      body: JSON.stringify(payload)
     });
-    const j = await res.json();
-    alert(j.message || (res.ok ? "تمت الإضافة" : "فشل"));
-    if (res.ok && j.ok) {
-      e.target.reset();
-      loadBooks();
+
+    // لو فشل - حاول المسار القديم /uploadBook (توافق للنسخ القديمة)
+    if (!res.ok) {
+      console.warn("POST /books failed, trying /uploadBook. status:", res.status);
+      res = await fetch(`${BACKEND}/uploadBook`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, password: adminPass })
+      });
     }
+
+    const text = await res.text();
+    let j = null;
+    try { j = JSON.parse(text); } catch (err) {}
+    console.log("Final response status:", res.status, "body:", text);
+
+    if (!res.ok) {
+      const msg = (j && j.message) ? j.message : `خطأ من الخادم (status ${res.status})`;
+      return alert("فشل الإرسال: " + msg);
+    }
+    alert((j && j.message) ? j.message : "تمت إضافة الكتاب بنجاح");
+    e.target.reset();
+    loadBooks();
   } catch (err) {
-    console.error("onUploadBook:", err);
-    alert("حدث خطأ أثناء الإرسال.");
+    console.error("onUploadBook error:", err);
+    alert("حدث خطأ أثناء الإرسال. افتح DevTools وشوف Console وNetwork.");
   }
 }
 
@@ -243,15 +263,14 @@ async function onDeleteTip(e) {
   }
 }
 
-/* ===== Admin login (يحفظ كلمة المرور مؤقتًا في المتصفح) ===== */
+/* ===== Admin login ===== */
 function onAdminLogin() {
   const pass = prompt("ادخل كلمة مرور المشرف:");
   if (!pass) return;
   adminPass = pass;
-  // إظهار نماذج الرفع عند نجاح الدخول محليًا (لتستعملها تختبر لاحقاً)
   document.getElementById("upload-book").style.display = "block";
   document.getElementById("upload-tip").style.display = "block";
-  alert("وضع المسؤول مُفعل محلياً. ملاحظة: تحقق من الباكند فعلياً بالبيئة لتأمين كلمة السر.");
+  alert("وضع المسؤول مُفعل محلياً. تحقق من الباكند فعلياً للسلامة.");
 }
 
 /* ===== UI صفحات ===== */
@@ -259,8 +278,6 @@ function showPage(id) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("visible"));
   const page = document.getElementById(id);
   if (page) page.classList.add("visible");
-
   const backBtn = document.getElementById("backBtn");
   backBtn.style.display = id === "videosPage" ? "none" : "block";
 }
-
