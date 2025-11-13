@@ -29,6 +29,7 @@
 
   <!-- شريط التنقل -->
   <nav class="navbar">
+    <a data-section="videosPage">📺 الفيديوهات</a>
     <a data-section="booksPage">📚 المكتبة</a>
     <a data-section="tipsPage">🌿 إرشادات ونصائح</a>
   </nav>
@@ -36,8 +37,14 @@
   <button id="backBtn" class="back-btn" style="display:none;">⬅ رجوع</button>
 
   <main>
-    <!-- صفحة الكتب -->
-    <section id="booksPage" class="page visible">
+    <!-- الفيديوهات -->
+    <section id="videosPage" class="page visible">
+      <h2>📺 الفيديوهات</h2>
+      <div id="videos" class="videos-grid"></div>
+    </section>
+
+    <!-- المكتبة -->
+    <section id="booksPage" class="page">
       <h2>📚 المكتبة</h2>
       <form id="upload-book" class="upload-box" style="display:none;">
         <input type="text" name="title" placeholder="اسم الكتاب" required />
@@ -47,7 +54,7 @@
       <div id="book-list" class="books-grid"></div>
     </section>
 
-    <!-- صفحة الإرشادات -->
+    <!-- الإرشادات -->
     <section id="tipsPage" class="page">
       <h2>🌿 إرشادات ونصائح</h2>
       <form id="upload-tip" class="upload-box" style="display:none;">
