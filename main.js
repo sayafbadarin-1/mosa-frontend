@@ -1,4 +1,4 @@
-const BACKEND = "https://mosa-backend-dr63.onrender.com"; // غيّر هذا لاحقًا إلى رابط Render
+const BACKEND = "http://localhost:4000"; // غيّره إلى رابط Render بعد النشر
 const PASSWORD = "sayaf1820";
 
 /* شاشة البداية */
@@ -12,13 +12,37 @@ document.getElementById("enterBtn").addEventListener("click", () => {
 });
 
 function initializeSite() {
-  loadVideos();  // يمكن حذفه إذا لا يوجد قسم فيديو
+  loadVideos();
   loadBooks();
   loadTips();
 }
 
-/* ========== المكتبة (Google Drive) ========== */
-document.getElementById("upload-book").addEventListener("submit", async (e) => {
+/* ====== الفيديوهات ====== */
+async function loadVideos() {
+  const CHANNEL_ID = "UChFRy4s3_0MVJ3Hmw2AMcoQ"; // قناة الشيخ موسى الخلايلة
+  const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
+  try {
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`);
+    const data = await res.json();
+    const items = data.items.slice(0, 50);
+    document.getElementById("videos").innerHTML = items.map(v => {
+      const id = v.link.split('=')[1];
+      const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+      return `
+        <div class="video">
+          <a href="https://www.youtube.com/watch?v=${id}" target="_blank">
+            <img src="${thumb}" width="340" height="200" style="border-radius:10px;border:none;">
+          </a>
+          <p>${v.title}</p>
+        </div>`;
+    }).join("");
+  } catch {
+    document.getElementById("videos").innerHTML = `<p style="color:#aaa">⚠️ تعذر تحميل الفيديوهات.</p>`;
+  }
+}
+
+/* ====== المكتبة ====== */
+document.getElementById("upload-book").addEventListener("submit", async e => {
   e.preventDefault();
   const payload = {
     title: e.target.title.value.trim(),
@@ -42,28 +66,27 @@ async function loadBooks() {
   const res = await fetch(`${BACKEND}/books`);
   const books = await res.json();
   const isAdmin = document.getElementById("upload-book").style.display === "block";
-
   document.getElementById("book-list").innerHTML = books.map((b, i) => {
     const match = b.url.match(/\/d\/([^/]+)/);
     let preview = match ? `https://drive.google.com/file/d/${match[1]}/preview` : "";
     return `
-    <div class="book">
-      <h3>${b.title}</h3>
-      ${
-        preview
-          ? `<iframe src="${preview}" width="100%" height="400" allow="autoplay"></iframe>`
-          : `<p style="color:#aaa">🔗 لا يمكن عرض المعاينة</p>`
-      }
-      <a href="${b.url}" target="_blank">📖 فتح في Drive</a>
-      ${
-        isAdmin
-          ? `<div class="tip-controls">
-               <button onclick="editBook(${i})">✏️ تعديل</button>
-               <button onclick="deleteBook(${i})">🗑️ حذف</button>
-             </div>`
-          : ""
-      }
-    </div>`;
+      <div class="book">
+        <h3>${b.title}</h3>
+        ${
+          preview
+            ? `<iframe src="${preview}" width="100%" height="400" allow="autoplay"></iframe>`
+            : `<p style="color:#aaa">🔗 لا يمكن عرض المعاينة</p>`
+        }
+        <a href="${b.url}" target="_blank">📖 فتح في Drive</a>
+        ${
+          isAdmin
+            ? `<div class="tip-controls">
+                 <button onclick="editBook(${i})">✏️ تعديل</button>
+                 <button onclick="deleteBook(${i})">🗑️ حذف</button>
+               </div>`
+            : ""
+        }
+      </div>`;
   }).join("");
 }
 
@@ -92,8 +115,8 @@ async function deleteBook(index) {
   if (res.ok) loadBooks();
 }
 
-/* ========== الإرشادات ========== */
-document.getElementById("upload-tip").addEventListener("submit", async (e) => {
+/* ====== الإرشادات ====== */
+document.getElementById("upload-tip").addEventListener("submit", async e => {
   e.preventDefault();
   const text = e.target.text.value.trim();
   if (!text) return alert("اكتب نص الإرشاد أولاً");
@@ -153,9 +176,9 @@ async function deleteTip(index) {
   if (res.ok) loadTips();
 }
 
-/* زر تسجيل الدخول */
+/* تسجيل الدخول */
 document.getElementById("adminLogin").addEventListener("click", () => {
-  const pass = prompt("كلمة السر للإدارة:");
+  const pass = prompt("كلمة المرور:");
   if (pass === PASSWORD) {
     document.getElementById("upload-book").style.display = "block";
     document.getElementById("upload-tip").style.display = "block";
@@ -165,7 +188,7 @@ document.getElementById("adminLogin").addEventListener("click", () => {
   } else if (pass) alert("❌ كلمة المرور غير صحيحة");
 });
 
-/* تحكم في التنقل بين الصفحات */
+/* التنقل بين الصفحات */
 const links = document.querySelectorAll(".navbar a");
 const pages = document.querySelectorAll(".page");
 const backBtn = document.getElementById("backBtn");
@@ -175,12 +198,12 @@ links.forEach(link => {
     const target = link.dataset.section;
     pages.forEach(p => p.classList.remove("visible"));
     document.getElementById(target).classList.add("visible");
-    backBtn.style.display = target === "booksPage" ? "none" : "block";
+    backBtn.style.display = target === "videosPage" ? "none" : "block";
     scrollTo(0, 0);
   });
 });
 backBtn.addEventListener("click", () => {
   pages.forEach(p => p.classList.remove("visible"));
-  document.getElementById("booksPage").classList.add("visible");
+  document.getElementById("videosPage").classList.add("visible");
   backBtn.style.display = "none";
 });
