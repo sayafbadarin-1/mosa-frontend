@@ -132,16 +132,23 @@ async function deleteTip(index) {
 
 /* ===== رفع كتاب إلى Cloudinary ===== */
 document.getElementById("upload-book").addEventListener("submit", async e => {
-  e.preventDefault();
+  e.preventDefault();                     // يمنع التحويل لصفحة جديدة
   const formData = new FormData(e.target);
   formData.append("password", PASSWORD);
 
-  const res = await fetch(`${BACKEND}/uploadBook`, { method: "POST", body: formData });
+  const res = await fetch(`${BACKEND}/uploadBook`, {
+    method: "POST",
+    body: formData
+  });
+
   const data = await res.json();
   alert(data.message);
-  if (res.ok) loadBooks();
-});
 
+  if (res.ok) {
+    loadBooks();   // يعيد تحميل الكتب داخل الصفحة الحالية
+    e.target.reset();  // يمسح الفورم بعد الرفع (اختياري)
+  }
+});
 /* ===== رفع إرشاد (نصي + PDF اختياري) ===== */
 document.getElementById("upload-tip").addEventListener("submit", async e => {
   e.preventDefault();
@@ -163,3 +170,4 @@ document.getElementById("upload-tip").addEventListener("submit", async e => {
     loadTips();
   }
 });
+
