@@ -20,9 +20,8 @@
   <header class="hero">
     <div class="overlay-hero"></div>
     <div class="hero-content">
-      <img 
-        src="https://yt3.googleusercontent.com/co-iJ8X1CeyQWoeqU8TspcCyVNY_pPLZTP_LHpEPi73b39Pql8nAXpObTgl1Qs2Cle6IorGSyA=s160-c-k-c0x00ffffff-no-rj" 
-        alt="شعار الشيخ موسى الخلايلة" class="logo">
+      <img src="https://yt3.googleusercontent.com/co-iJ8X1CeyQWoeqU8TspcCyVNY_pPLZTP_LHpEPi73b39Pql8nAXpObTgl1Qs2Cle6IorGSyA=s160-c-k-c0x00ffffff-no-rj" 
+           alt="شعار الشيخ موسى الخلايلة" class="logo" />
       <h1>الشيخ موسى الخلايلة</h1>
       <p>منبر علم وخير 🌙</p>
     </div>
@@ -30,7 +29,6 @@
 
   <!-- شريط التنقل -->
   <nav class="navbar">
-    <a data-section="videosPage">📺 الفيديوهات</a>
     <a data-section="booksPage">📚 المكتبة</a>
     <a data-section="tipsPage">🌿 إرشادات ونصائح</a>
   </nav>
@@ -38,22 +36,17 @@
   <button id="backBtn" class="back-btn" style="display:none;">⬅ رجوع</button>
 
   <main>
-    <!-- صفحة الفيديوهات -->
-    <section id="videosPage" class="page visible">
-      <div id="videos" class="videos-grid"></div>
+    <!-- صفحة الكتب -->
+    <section id="booksPage" class="page visible">
+      <h2>📚 المكتبة</h2>
+      <form id="upload-book" class="upload-box" style="display:none;">
+        <input type="text" name="title" placeholder="اسم الكتاب" required />
+        <input type="url" name="url" placeholder="رابط الكتاب من Google Drive" required />
+        <button type="submit">إضافة الكتاب</button>
+      </form>
+      <div id="book-list" class="books-grid"></div>
     </section>
 
-    <!-- صفحة المكتبة -->
-<section id="booksPage" class="page">
-  <h2>📚 المكتبة</h2>
-  <form id="upload-book" class="upload-box" style="display:none;">
-    <input type="text" name="title" placeholder="اسم الكتاب" required />
-    <input type="url" name="url" placeholder="رابط الكتاب من Google Drive" required />
-    <button type="submit">إضافة الكتاب</button>
-  </form>
-  <div id="book-list" class="books-grid"></div>
-</section>
-    
     <!-- صفحة الإرشادات -->
     <section id="tipsPage" class="page">
       <h2>🌿 إرشادات ونصائح</h2>
@@ -73,4 +66,3 @@
   <script src="main.js"></script>
 </body>
 </html>
-
