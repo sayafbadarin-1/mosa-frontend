@@ -44,16 +44,16 @@
     </section>
 
     <!-- صفحة المكتبة -->
-    <section id="booksPage" class="page">
-      <h2>📚 المكتبة</h2>
-      <form id="upload-book" class="upload-box" style="display:none;">
-        <input type="text" name="title" placeholder="اسم الكتاب" required>
-        <input type="file" name="pdf" accept=".pdf" required>
-        <button type="submit">رفع الكتاب</button>
-      </form>
-      <div id="book-list" class="books-grid"></div>
-    </section>
-
+<section id="booksPage" class="page">
+  <h2>📚 المكتبة</h2>
+  <form id="upload-book" class="upload-box" style="display:none;">
+    <input type="text" name="title" placeholder="اسم الكتاب" required />
+    <input type="url" name="url" placeholder="رابط الكتاب من Google Drive" required />
+    <button type="submit">إضافة الكتاب</button>
+  </form>
+  <div id="book-list" class="books-grid"></div>
+</section>
+    
     <!-- صفحة الإرشادات -->
     <section id="tipsPage" class="page">
       <h2>🌿 إرشادات ونصائح</h2>
@@ -73,3 +73,4 @@
   <script src="main.js"></script>
 </body>
 </html>
+
