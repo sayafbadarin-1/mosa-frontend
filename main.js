@@ -1,20 +1,26 @@
-// main.js (نهائي ومتوافق مع server.js)
-const BACKEND = "https://mosa-backend-dr63.onrender.com"; // غيّره إلى رابط السيرفر عند النشر
-let adminPass = null; // يُملأ عند تسجيل الدخول (يحفظ مؤقتاً في الsession)
+// main.js (محدّث لدعم login/logout وتغيير كلمة المرور وتعديل الإرشاد)
+const BACKEND = "https://mosa-backend-dr63.onrender.com"; // غيّره لرابط السيرفر عند النشر
+let adminPass = null; // محفوظ مؤقتاً بالمتصفح (محلي)
 
 document.addEventListener("DOMContentLoaded", () => {
+  // ربط أزرار وواجهات
   document.getElementById("enterBtn").addEventListener("click", onEnter);
   document.querySelectorAll(".navbar a").forEach(a => {
     a.addEventListener("click", () => showPage(a.dataset.section));
   });
   document.getElementById("backBtn").addEventListener("click", () => showPage("videosPage"));
-  document.getElementById("adminLogin").addEventListener("click", onAdminLogin);
 
+  // زر تسجيل الدخول/الخروج و زر تغيير كلمة المرور
+  const adminBtn = document.getElementById("adminLogin");
+  adminBtn.addEventListener("click", onAdminToggle);
+
+  // نماذج
   const uploadBookForm = document.getElementById("upload-book");
   if (uploadBookForm) uploadBookForm.addEventListener("submit", onUploadBook);
-
   const uploadTipForm = document.getElementById("upload-tip");
   if (uploadTipForm) uploadTipForm.addEventListener("submit", onUploadTip);
+
+  updateAdminUI(); // تحديث واجهة حسب حالة adminPass
 });
 
 function onEnter() {
@@ -29,7 +35,82 @@ function initializeSite() {
   showPage("videosPage");
 }
 
-/* ===== YouTube ID helper ===== */
+/* ===== Admin toggle (login/logout) ===== */
+function onAdminToggle() {
+  if (adminPass) {
+    // حالياً مُسجّل - قم بتسجيل الخروج
+    if (!confirm("هل تريد تسجيل الخروج من وضع المسؤول؟")) return;
+    adminPass = null;
+    updateAdminUI();
+    alert("تم تسجيل الخروج.");
+    return;
+  }
+  // تسجيل الدخول
+  const pass = prompt("ادخل كلمة مرور المشرف:");
+  if (!pass) return;
+  adminPass = pass;
+  updateAdminUI();
+  alert("وضع المسؤول مفعل محلياً.");
+}
+
+function updateAdminUI() {
+  const adminBtn = document.getElementById("adminLogin");
+  if (adminPass) {
+    adminBtn.textContent = "تسجيل الخروج";
+    // عرض نماذج الرفع وزر تغيير كلمة المرور (ننشئ الزر إن لم يوجد)
+    document.getElementById("upload-book").style.display = "block";
+    document.getElementById("upload-tip").style.display = "block";
+    if (!document.getElementById("changePassBtn")) {
+      const btn = document.createElement("button");
+      btn.id = "changePassBtn";
+      btn.textContent = "تغيير كلمة المرور";
+      btn.style.marginLeft = "10px";
+      btn.addEventListener("click", onChangePassword);
+      // نضعه بجانب زر admin (في الفوتر)
+      const footer = document.querySelector("footer");
+      footer.insertBefore(btn, footer.firstChild);
+    }
+  } else {
+    adminBtn.textContent = "تسجيل دخول";
+    document.getElementById("upload-book").style.display = "none";
+    document.getElementById("upload-tip").style.display = "none";
+    const existing = document.getElementById("changePassBtn");
+    if (existing) existing.remove();
+  }
+}
+
+/* ===== تغيير كلمة المرور ===== */
+async function onChangePassword() {
+  if (!adminPass) return alert("يجب تسجيل الدخول كمشرف أولاً.");
+  const current = adminPass;
+  const newPass = prompt("ادخل كلمة المرور الجديدة (طول ≥4):");
+  if (!newPass) return;
+  if (newPass.length < 4) return alert("كلمة المرور قصيرة جداً.");
+  try {
+    const res = await fetch(`${BACKEND}/admin/change-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-pass": current
+      },
+      body: JSON.stringify({ newPassword: newPass })
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(j.message || "فشل تغيير كلمة المرور.");
+      return;
+    }
+    // لو نجح، نحدث adminPass المحلي إلى الجديد
+    adminPass = newPass;
+    updateAdminUI();
+    alert(j.message || "تم تغيير كلمة المرور.");
+  } catch (err) {
+    console.error("onChangePassword:", err);
+    alert("حدث خطأ أثناء تغيير كلمة المرور.");
+  }
+}
+
+/* ===== YouTube helper & escaping ===== */
 function extractYouTubeID(url) {
   if (!url) return null;
   const patterns = [
@@ -45,7 +126,6 @@ function extractYouTubeID(url) {
   if (url.length >= 11) return url.slice(-11);
   return null;
 }
-
 function escapeHtml(unsafe) {
   if (unsafe === null || unsafe === undefined) return "";
   return String(unsafe)
@@ -139,19 +219,14 @@ async function onUploadBook(e) {
 
   const payload = { title, url };
   try {
-    // حاول المسار الحديث أولاً
     let res = await fetch(`${BACKEND}/books`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-pass": adminPass
-      },
+      headers: { "Content-Type": "application/json", "x-admin-pass": adminPass },
       body: JSON.stringify(payload)
     });
 
-    // لو فشل - حاول المسار القديم /uploadBook (توافق للنسخ القديمة)
     if (!res.ok) {
-      console.warn("POST /books failed, trying /uploadBook. status:", res.status);
+      // محاولة توافقية مع القديم
       res = await fetch(`${BACKEND}/uploadBook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -162,8 +237,6 @@ async function onUploadBook(e) {
     const text = await res.text();
     let j = null;
     try { j = JSON.parse(text); } catch (err) {}
-    console.log("Final response status:", res.status, "body:", text);
-
     if (!res.ok) {
       const msg = (j && j.message) ? j.message : `خطأ من الخادم (status ${res.status})`;
       return alert("فشل الإرسال: " + msg);
@@ -194,7 +267,7 @@ async function onDeleteBook(e) {
   }
 }
 
-/* ===== Tips ===== */
+/* ===== Tips (مع زر تعديل) ===== */
 async function loadTips() {
   const container = document.getElementById("tip-list");
   container.innerHTML = `<p style="color:#aaa">جارٍ تحميل الإرشادات...</p>`;
@@ -207,12 +280,19 @@ async function loadTips() {
       container.innerHTML = "<p style='color:#aaa'>لا توجد إرشادات بعد.</p>";
       return;
     }
+    const isAdmin = !!adminPass;
     container.innerHTML = tips.map(t => `
       <div class="book" style="padding:12px;text-align:right;">
-        <p style="white-space:pre-line;">${escapeHtml(t.text || t)}</p>
-        ${adminPass ? `<div class="tip-controls"><button data-id="${t.id}" class="delete-tip">حذف</button></div>` : ""}
+        <p id="tip-text-${t.id}" style="white-space:pre-line;">${escapeHtml(t.text || t)}</p>
+        ${isAdmin ? `
+          <div class="tip-controls">
+            <button data-id="${t.id}" class="edit-tip">تعديل</button>
+            <button data-id="${t.id}" class="delete-tip">حذف</button>
+          </div>` : ""}
       </div>
     `).join("");
+    // ربط أزرار التعديل والحذف
+    document.querySelectorAll(".edit-tip").forEach(btn => btn.addEventListener("click", onEditTip));
     document.querySelectorAll(".delete-tip").forEach(btn => btn.addEventListener("click", onDeleteTip));
   } catch (err) {
     console.error("loadTips:", err);
@@ -228,10 +308,7 @@ async function onUploadTip(e) {
   try {
     const res = await fetch(`${BACKEND}/tips`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-pass": adminPass
-      },
+      headers: { "Content-Type": "application/json", "x-admin-pass": adminPass },
       body: JSON.stringify({ text })
     });
     const j = await res.json();
@@ -263,17 +340,32 @@ async function onDeleteTip(e) {
   }
 }
 
-/* ===== Admin login ===== */
-function onAdminLogin() {
-  const pass = prompt("ادخل كلمة مرور المشرف:");
-  if (!pass) return;
-  adminPass = pass;
-  document.getElementById("upload-book").style.display = "block";
-  document.getElementById("upload-tip").style.display = "block";
-  alert("وضع المسؤول مُفعل محلياً. تحقق من الباكند فعلياً للسلامة.");
+/* ===== تعديل الإرشاد (فتح prompt وتحديث) ===== */
+async function onEditTip(e) {
+  const id = e.currentTarget.dataset.id;
+  const currentEl = document.getElementById(`tip-text-${id}`);
+  const currentText = currentEl ? currentEl.textContent.trim() : "";
+  const newText = prompt("حرّر الإرشاد ثم اضغط موافق:", currentText);
+  if (newText === null) return; // إلغاء
+  if (newText.trim().length === 0) return alert("النص لا يمكن أن يكون فارغاً.");
+  try {
+    const res = await fetch(`${BACKEND}/tips/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "x-admin-pass": adminPass || "" },
+      body: JSON.stringify({ text: newText.trim() })
+    });
+    const j = await res.json();
+    if (!res.ok) return alert(j.message || "فشل تعديل الإرشاد.");
+    // حدّث النص محلياً فورياً
+    if (currentEl) currentEl.textContent = newText.trim();
+    alert(j.message || "تم تعديل الإرشاد.");
+  } catch (err) {
+    console.error("onEditTip:", err);
+    alert("حدث خطأ أثناء التعديل.");
+  }
 }
 
-/* ===== UI صفحات ===== */
+/* ===== صفحات UI ===== */
 function showPage(id) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("visible"));
   const page = document.getElementById(id);
