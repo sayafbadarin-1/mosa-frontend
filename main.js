@@ -1,20 +1,17 @@
-// main.js (محدّث لدعم posts + uploadVideo + edit/delete)
-const BACKEND = "https://mosa-backend-dr63.onrender.com"; // غيّره لرابط السيرفر عند النشر
+// main.js (محدث: يدعم login/logout, تغيير كلمة المرور, كتب، إرشادات، مشاركات مع رفع للفيديو عبر Cloudinary)
+const BACKEND = "https://mosa-backend-dr63.onrender.com"; // <-- غيّره إلى رابط سيرفرك النهائي
 let adminPass = null; // محفوظ مؤقتاً بالمتصفح (محلي)
 
+// --- Cloudinary config (استبدل القيم) ---
+const CLOUDINARY_CLOUD = "your_cloud_name"; // <-- ضع cloud name هنا
+const CLOUDINARY_PRESET = "your_unsigned_preset"; // <-- ضع upload preset unsigned هنا
+
 document.addEventListener("DOMContentLoaded", () => {
-  // ربط أزرار وواجهات
   document.getElementById("enterBtn").addEventListener("click", onEnter);
-  document.querySelectorAll(".navbar a").forEach(a => {
-    a.addEventListener("click", () => showPage(a.dataset.section));
-  });
+  document.querySelectorAll(".navbar a").forEach(a => a.addEventListener("click", () => showPage(a.dataset.section)));
   document.getElementById("backBtn").addEventListener("click", () => showPage("videosPage"));
+  document.getElementById("adminLogin").addEventListener("click", onAdminToggle);
 
-  // زر تسجيل الدخول/الخروج و زر تغيير كلمة المرور
-  const adminBtn = document.getElementById("adminLogin");
-  adminBtn.addEventListener("click", onAdminToggle);
-
-  // نماذج
   const uploadBookForm = document.getElementById("upload-book");
   if (uploadBookForm) uploadBookForm.addEventListener("submit", onUploadBook);
   const uploadTipForm = document.getElementById("upload-tip");
@@ -22,14 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const uploadPostForm = document.getElementById("upload-post");
   if (uploadPostForm) uploadPostForm.addEventListener("submit", onUploadPost);
 
-  updateAdminUI(); // تحديث واجهة حسب حالة adminPass
+  updateAdminUI();
 });
 
 function onEnter() {
   document.getElementById("overlay").style.display = "none";
   initializeSite();
 }
-
 function initializeSite() {
   loadVideos();
   loadBooks();
@@ -38,7 +34,7 @@ function initializeSite() {
   showPage("videosPage");
 }
 
-/* ===== Admin toggle (login/logout) ===== */
+/* ===== admin toggle ===== */
 function onAdminToggle() {
   if (adminPass) {
     if (!confirm("هل تريد تسجيل الخروج من وضع المسؤول؟")) return;
@@ -53,12 +49,10 @@ function onAdminToggle() {
   updateAdminUI();
   alert("وضع المسؤول مفعل محلياً.");
 }
-
 function updateAdminUI() {
   const adminBtn = document.getElementById("adminLogin");
   if (adminPass) {
     adminBtn.textContent = "تسجيل الخروج";
-    // عرض نماذج الرفع وزر تغيير كلمة المرور (ننشئ الزر إن لم يوجد)
     document.getElementById("upload-book").style.display = "block";
     document.getElementById("upload-tip").style.display = "block";
     document.getElementById("upload-post").style.display = "block";
@@ -68,7 +62,7 @@ function updateAdminUI() {
       btn.textContent = "تغيير كلمة المرور";
       btn.style.marginLeft = "10px";
       btn.addEventListener("click", onChangePassword);
-      const footer = document.querySelector("footer div");
+      const footer = document.querySelector("footer");
       footer.insertBefore(btn, footer.firstChild);
     }
   } else {
@@ -81,7 +75,7 @@ function updateAdminUI() {
   }
 }
 
-/* ===== تغيير كلمة المرور ===== */
+/* ===== change password ===== */
 async function onChangePassword() {
   if (!adminPass) return alert("يجب تسجيل الدخول كمشرف أولاً.");
   const current = adminPass;
@@ -91,10 +85,7 @@ async function onChangePassword() {
   try {
     const res = await fetch(`${BACKEND}/admin/change-password`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-pass": current
-      },
+      headers: { "Content-Type": "application/json", "x-admin-pass": current },
       body: JSON.stringify({ newPassword: newPass })
     });
     const j = await res.json().catch(() => ({}));
@@ -111,15 +102,10 @@ async function onChangePassword() {
   }
 }
 
-/* ===== Helpers ===== */
+/* ===== helpers ===== */
 function extractYouTubeID(url) {
   if (!url) return null;
-  const patterns = [
-    /v=([a-zA-Z0-9_-]{11})/,
-    /\/embed\/([a-zA-Z0-9_-]{11})/,
-    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-    /\/watch\/([a-zA-Z0-9_-]{11})/
-  ];
+  const patterns = [/v=([a-zA-Z0-9_-]{11})/, /\/embed\/([a-zA-Z0-9_-]{11})/, /youtu\.be\/([a-zA-Z0-9_-]{11})/, /\/watch\/([a-zA-Z0-9_-]{11})/];
   for (const p of patterns) {
     const m = url.match(p);
     if (m) return m[1];
@@ -129,18 +115,11 @@ function extractYouTubeID(url) {
 }
 function escapeHtml(unsafe) {
   if (unsafe === null || unsafe === undefined) return "";
-  return String(unsafe)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+  return String(unsafe).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
-function escapeAttr(s) {
-  return escapeHtml(s).replaceAll("\n", "");
-}
+function escapeAttr(s) { return escapeHtml(s).replaceAll("\n", ""); }
 
-/* ===== Videos (YouTube feed) ===== */
+/* ===== Videos (unchanged) ===== */
 async function loadVideos() {
   const CHANNEL_ID = "UChFRy4s3_0MVJ3Hmw2AMcoQ";
   const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
@@ -190,10 +169,7 @@ async function loadBooks() {
       const match = (b.url || "").match(/\/d\/([^/]+)/);
       const preview = match ? `https://drive.google.com/file/d/${match[1]}/preview` : "";
       const safeTitle = escapeHtml(b.title || "بدون عنوان");
-      const controls = isAdmin ? `
-        <div class="tip-controls">
-          <button data-id="${b.id}" class="delete-book">حذف</button>
-        </div>` : "";
+      const controls = isAdmin ? `<div class="tip-controls"><button data-id="${b.id}" class="delete-book">حذف</button></div>` : "";
       return `
       <div class="book">
         <h3 style="padding:12px 10px;margin:0;">${safeTitle}</h3>
@@ -201,23 +177,18 @@ async function loadBooks() {
         ${controls}
       </div>`;
     }).join("");
-
-    document.querySelectorAll(".delete-book").forEach(btn => {
-      btn.addEventListener("click", onDeleteBook);
-    });
+    document.querySelectorAll(".delete-book").forEach(btn => btn.addEventListener("click", onDeleteBook));
   } catch (err) {
     console.error("loadBooks:", err);
     container.innerHTML = "<p style='color:#faa'>⚠️ تعذر تحميل المكتبة.</p>";
   }
 }
-
 async function onUploadBook(e) {
   e.preventDefault();
   if (!adminPass) return alert("يجب تسجيل الدخول كمشرف أولاً.");
   const title = e.target.title.value.trim();
   const url = e.target.url.value.trim();
   if (!title || !url) return alert("أكمل الحقول المطلوبة.");
-
   const payload = { title, url };
   try {
     let res = await fetch(`${BACKEND}/books`, {
@@ -225,8 +196,6 @@ async function onUploadBook(e) {
       headers: { "Content-Type": "application/json", "x-admin-pass": adminPass },
       body: JSON.stringify(payload)
     });
-
-    // backward compat (old endpoint)
     if (!res.ok) {
       res = await fetch(`${BACKEND}/uploadBook`, {
         method: "POST",
@@ -234,7 +203,6 @@ async function onUploadBook(e) {
         body: JSON.stringify({ ...payload, password: adminPass })
       });
     }
-
     const text = await res.text();
     let j = null;
     try { j = JSON.parse(text); } catch (err) {}
@@ -250,7 +218,6 @@ async function onUploadBook(e) {
     alert("حدث خطأ أثناء الإرسال. افتح DevTools وشوف Console وNetwork.");
   }
 }
-
 async function onDeleteBook(e) {
   const id = e.currentTarget.dataset.id;
   if (!confirm("هل تريد حذف هذا الكتاب نهائياً؟")) return;
@@ -259,7 +226,7 @@ async function onDeleteBook(e) {
       method: "DELETE",
       headers: { "x-admin-pass": adminPass || "" }
     });
-    const j = await res.json().catch(() => ({}));
+    const j = await res.json();
     alert(j.message || (res.ok ? "تم الحذف" : "فشل"));
     if (res.ok && j.ok) loadBooks();
   } catch (err) {
@@ -285,11 +252,7 @@ async function loadTips() {
     container.innerHTML = tips.map(t => `
       <div class="book" style="padding:12px;text-align:right;">
         <p id="tip-text-${t.id}" style="white-space:pre-line;">${escapeHtml(t.text || t)}</p>
-        ${isAdmin ? `
-          <div class="tip-controls">
-            <button data-id="${t.id}" class="edit-tip">تعديل</button>
-            <button data-id="${t.id}" class="delete-tip">حذف</button>
-          </div>` : ""}
+        ${isAdmin ? `<div class="tip-controls"><button data-id="${t.id}" class="edit-tip">تعديل</button><button data-id="${t.id}" class="delete-tip">حذف</button></div>` : ""}
       </div>
     `).join("");
     document.querySelectorAll(".edit-tip").forEach(btn => btn.addEventListener("click", onEditTip));
@@ -299,7 +262,6 @@ async function loadTips() {
     container.innerHTML = "<p style='color:#faa'>⚠️ تعذر تحميل الإرشادات.</p>";
   }
 }
-
 async function onUploadTip(e) {
   e.preventDefault();
   if (!adminPass) return alert("يجب تسجيل الدخول كمشرف أولاً.");
@@ -311,7 +273,7 @@ async function onUploadTip(e) {
       headers: { "Content-Type": "application/json", "x-admin-pass": adminPass },
       body: JSON.stringify({ text })
     });
-    const j = await res.json().catch(() => ({}));
+    const j = await res.json();
     alert(j.message || (res.ok ? "تمت الإضافة" : "فشل"));
     if (res.ok && j.ok) {
       e.target.reset();
@@ -322,7 +284,6 @@ async function onUploadTip(e) {
     alert("فشل إرسال الإرشاد.");
   }
 }
-
 async function onDeleteTip(e) {
   const id = e.currentTarget.dataset.id;
   if (!confirm("هل تريد حذف هذا الإرشاد؟")) return;
@@ -331,7 +292,7 @@ async function onDeleteTip(e) {
       method: "DELETE",
       headers: { "x-admin-pass": adminPass || "" }
     });
-    const j = await res.json().catch(() => ({}));
+    const j = await res.json();
     alert(j.message || (res.ok ? "تم الحذف" : "فشل"));
     if (res.ok && j.ok) loadTips();
   } catch (err) {
@@ -339,7 +300,6 @@ async function onDeleteTip(e) {
     alert("حدث خطأ أثناء الحذف.");
   }
 }
-
 async function onEditTip(e) {
   const id = e.currentTarget.dataset.id;
   const currentEl = document.getElementById(`tip-text-${id}`);
@@ -353,7 +313,7 @@ async function onEditTip(e) {
       headers: { "Content-Type": "application/json", "x-admin-pass": adminPass || "" },
       body: JSON.stringify({ text: newText.trim() })
     });
-    const j = await res.json().catch(() => ({}));
+    const j = await res.json();
     if (!res.ok) return alert(j.message || "فشل تعديل الإرشاد.");
     if (currentEl) currentEl.textContent = newText.trim();
     alert(j.message || "تم تعديل الإرشاد.");
@@ -363,7 +323,7 @@ async function onEditTip(e) {
   }
 }
 
-/* ===== Posts (مشاركات الفيديو) ===== */
+/* ===== Posts (المشاركات) ===== */
 async function loadPosts() {
   const container = document.getElementById("post-list");
   container.innerHTML = `<p style="color:#aaa">جارٍ تحميل المشاركات...</p>`;
@@ -380,22 +340,13 @@ async function loadPosts() {
     container.innerHTML = posts.map(p => {
       const safeTitle = escapeHtml(p.title || "بدون عنوان");
       const safeDesc = escapeHtml(p.description || "");
-      const vid = p.videoUrl || "";
-      // عرض الفيديو بعنصر video إن كان مصدر مباشر أو iframe إن كان YouTube
-      const ytId = extractYouTubeID(vid);
-      const media = ytId
-        ? `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" rel="noopener noreferrer"><img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;height:200px;object-fit:cover;border-radius:6px;"></a>`
-        : `<video controls preload="metadata" style="width:100%;height:240px;border-radius:6px;"><source src="${escapeAttr(vid)}"></video>`;
-      const controls = isAdmin ? `
-        <div class="tip-controls">
-          <button data-id="${p.id}" class="edit-post">تعديل</button>
-          <button data-id="${p.id}" class="delete-post">حذف</button>
-        </div>` : "";
+      const videoEmbed = p.videoUrl ? `<video controls src="${escapeAttr(p.videoUrl)}" style="width:100%;max-height:360px;border-radius:8px;" preload="metadata"></video>` : `<p style="color:#aaa">لا يوجد فيديو</p>`;
+      const controls = isAdmin ? `<div class="tip-controls"><button data-id="${p.id}" class="edit-post">تعديل</button><button data-id="${p.id}" class="delete-post">حذف</button></div>` : "";
       return `
-        <div class="book" style="padding:8px;text-align:right;">
-          <h3 style="margin:0 0 8px 0;padding:8px 6px;">${safeTitle}</h3>
-          <div style="padding:0 10px 8px 10px;">${media}</div>
-          <p style="padding:0 10px 10px 10px;color:#ddd;white-space:pre-line;">${safeDesc}</p>
+        <div class="book" style="padding:12px;text-align:right;">
+          <h3 style="margin:0 0 8px 0;padding:0;">${safeTitle}</h3>
+          ${videoEmbed}
+          <p style="white-space:pre-line;margin-top:8px;">${safeDesc}</p>
           ${controls}
         </div>
       `;
@@ -408,50 +359,51 @@ async function loadPosts() {
   }
 }
 
+// رفع الملف إلى Cloudinary (client-side unsigned)
+async function uploadToCloudinary(file) {
+  if (!CLOUDINARY_CLOUD || !CLOUDINARY_PRESET) throw new Error("يرجى ضبط إعدادات Cloudinary في main.js");
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/upload`;
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", CLOUDINARY_PRESET);
+  // يمكنك إضافة folder أو resource_type إذا أردت
+  const res = await fetch(url, { method: "POST", body: fd });
+  if (!res.ok) throw new Error("فشل رفع الملف إلى Cloudinary");
+  return res.json(); // يحتوي على secure_url وغيره
+}
+
 async function onUploadPost(e) {
   e.preventDefault();
   if (!adminPass) return alert("يجب تسجيل الدخول كمشرف أولاً.");
   const title = e.target.title.value.trim();
   const description = e.target.description.value.trim();
-  const fileInput = e.target.file;
-  const urlInput = e.target.videoUrl.value.trim();
-
-  if (!title) return alert("أدخل عنواناً للمشاركة.");
+  const fileInput = e.target.videoFile;
+  if (!title || !fileInput || !fileInput.files || fileInput.files.length === 0) return alert("أكمل الحقول المطلوبة واختر فيديو.");
+  const file = fileInput.files[0];
 
   try {
-    let videoUrl = urlInput || "";
+    // 1) ارفع الفيديو إلى Cloudinary
+    const upRes = await uploadToCloudinary(file);
+    const videoUrl = upRes.secure_url;
+    if (!videoUrl) throw new Error("لم نتحصل على رابط الفيديو من Cloudinary");
 
-    // إذا رفع ملف، نرفعه إلى الخادم ثم Cloudinary
-    if (!videoUrl && fileInput && fileInput.files && fileInput.files.length > 0) {
-      const file = fileInput.files[0];
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch(`${BACKEND}/uploadVideo`, {
-        method: "POST",
-        headers: { "x-admin-pass": adminPass },
-        body: fd
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) return alert(j.message || "فشل رفع الفيديو.");
-      videoUrl = j.url;
-    }
-
-    if (!videoUrl) return alert("يجب رفع ملف أو وضع رابط للفيديو.");
-
-    // أنشئ المشاركة
-    const postRes = await fetch(`${BACKEND}/posts`, {
+    // 2) ارسل بيانات المشاركة للـbackend ليُخزن metadata
+    const res = await fetch(`${BACKEND}/posts`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-admin-pass": adminPass },
       body: JSON.stringify({ title, description, videoUrl })
     });
-    const pj = await postRes.json().catch(() => ({}));
-    if (!postRes.ok) return alert(pj.message || "فشل إنشاء المشاركة.");
-    alert(pj.message || "تمت إضافة المشاركة.");
+    const j = await res.json();
+    if (!res.ok) {
+      alert(j.message || "فشل حفظ المشاركة على الخادم.");
+      return;
+    }
+    alert(j.message || "تمت إضافة المشاركة.");
     e.target.reset();
     loadPosts();
   } catch (err) {
     console.error("onUploadPost:", err);
-    alert("حدث خطأ أثناء نشر المشاركة.");
+    alert("حدث خطأ أثناء رفع المشاركة: " + (err.message || err));
   }
 }
 
@@ -463,7 +415,7 @@ async function onDeletePost(e) {
       method: "DELETE",
       headers: { "x-admin-pass": adminPass || "" }
     });
-    const j = await res.json().catch(() => ({}));
+    const j = await res.json();
     alert(j.message || (res.ok ? "تم الحذف" : "فشل"));
     if (res.ok && j.ok) loadPosts();
   } catch (err) {
@@ -474,25 +426,27 @@ async function onDeletePost(e) {
 
 async function onEditPost(e) {
   const id = e.currentTarget.dataset.id;
+  // نطلب من المستخدم العنوان والوصف الجديدين (بسيط)
+  const currentTitle = prompt("ادخل العنوان الجديد (اتركه فارغاً إن لم تغير):", "");
+  if (currentTitle === null) return;
+  const currentDesc = prompt("ادخل الوصف الجديد (اتركه فارغاً إن لم تغير):", "");
+  if (currentDesc === null) return;
+  // في هذه النسخة لا نغير الفيديو - لكن أدخلنا خيار إرسال رابط فيديو جديد اختياري
+  const newVideoUrl = prompt("إذا أردت تغيير فيديو المشاركة: الصق رابط الفيديو الجديد (أو اتركه فارغاً):", "");
   try {
-    // جلب تفاصيل المشاركة الحالية من الخادم (أو من DOM لو محفوظ)
-    const getRes = await fetch(`${BACKEND}/posts`);
-    const j = await getRes.json().catch(() => ({}));
-    const posts = j.ok ? j.data : [];
-    const post = posts.find(p => p.id === id);
-    if (!post) return alert("المشاركة غير موجودة.");
-    const newTitle = prompt("حرّر العنوان:", post.title || "");
-    if (newTitle === null) return;
-    const newDesc = prompt("حرّر الوصف:", post.description || "");
-    if (newDesc === null) return;
+    const payload = {};
+    if ((currentTitle || "").trim().length) payload.title = currentTitle.trim();
+    if ((currentDesc || "").trim().length) payload.description = currentDesc.trim();
+    if ((newVideoUrl || "").trim().length) payload.videoUrl = newVideoUrl.trim();
+    if (Object.keys(payload).length === 0) return alert("لم تغيّر أي شيء.");
     const res = await fetch(`${BACKEND}/posts/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", "x-admin-pass": adminPass || "" },
-      body: JSON.stringify({ title: newTitle.trim(), description: newDesc.trim() })
+      body: JSON.stringify(payload)
     });
-    const pj = await res.json().catch(() => ({}));
-    if (!res.ok) return alert(pj.message || "فشل تعديل المشاركة.");
-    alert(pj.message || "تم تعديل المشاركة.");
+    const j = await res.json();
+    if (!res.ok) return alert(j.message || "فشل تعديل المشاركة.");
+    alert(j.message || "تم تعديل المشاركة.");
     loadPosts();
   } catch (err) {
     console.error("onEditPost:", err);
@@ -500,7 +454,7 @@ async function onEditPost(e) {
   }
 }
 
-/* ===== صفحات UI ===== */
+/* ===== UI pages ===== */
 function showPage(id) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("visible"));
   const page = document.getElementById(id);
