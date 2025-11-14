@@ -1,4 +1,4 @@
-// main.js (محدّث لدعم login/logout وتغيير كلمة المرور وتعديل الإرشاد)
+// main.js (محدّث لدعم posts + uploadVideo + edit/delete)
 const BACKEND = "https://mosa-backend-dr63.onrender.com"; // غيّره لرابط السيرفر عند النشر
 let adminPass = null; // محفوظ مؤقتاً بالمتصفح (محلي)
 
@@ -19,6 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (uploadBookForm) uploadBookForm.addEventListener("submit", onUploadBook);
   const uploadTipForm = document.getElementById("upload-tip");
   if (uploadTipForm) uploadTipForm.addEventListener("submit", onUploadTip);
+  const uploadPostForm = document.getElementById("upload-post");
+  if (uploadPostForm) uploadPostForm.addEventListener("submit", onUploadPost);
 
   updateAdminUI(); // تحديث واجهة حسب حالة adminPass
 });
@@ -32,20 +34,19 @@ function initializeSite() {
   loadVideos();
   loadBooks();
   loadTips();
+  loadPosts();
   showPage("videosPage");
 }
 
 /* ===== Admin toggle (login/logout) ===== */
 function onAdminToggle() {
   if (adminPass) {
-    // حالياً مُسجّل - قم بتسجيل الخروج
     if (!confirm("هل تريد تسجيل الخروج من وضع المسؤول؟")) return;
     adminPass = null;
     updateAdminUI();
     alert("تم تسجيل الخروج.");
     return;
   }
-  // تسجيل الدخول
   const pass = prompt("ادخل كلمة مرور المشرف:");
   if (!pass) return;
   adminPass = pass;
@@ -60,20 +61,21 @@ function updateAdminUI() {
     // عرض نماذج الرفع وزر تغيير كلمة المرور (ننشئ الزر إن لم يوجد)
     document.getElementById("upload-book").style.display = "block";
     document.getElementById("upload-tip").style.display = "block";
+    document.getElementById("upload-post").style.display = "block";
     if (!document.getElementById("changePassBtn")) {
       const btn = document.createElement("button");
       btn.id = "changePassBtn";
       btn.textContent = "تغيير كلمة المرور";
       btn.style.marginLeft = "10px";
       btn.addEventListener("click", onChangePassword);
-      // نضعه بجانب زر admin (في الفوتر)
-      const footer = document.querySelector("footer");
+      const footer = document.querySelector("footer div");
       footer.insertBefore(btn, footer.firstChild);
     }
   } else {
     adminBtn.textContent = "تسجيل دخول";
     document.getElementById("upload-book").style.display = "none";
     document.getElementById("upload-tip").style.display = "none";
+    document.getElementById("upload-post").style.display = "none";
     const existing = document.getElementById("changePassBtn");
     if (existing) existing.remove();
   }
@@ -100,7 +102,6 @@ async function onChangePassword() {
       alert(j.message || "فشل تغيير كلمة المرور.");
       return;
     }
-    // لو نجح، نحدث adminPass المحلي إلى الجديد
     adminPass = newPass;
     updateAdminUI();
     alert(j.message || "تم تغيير كلمة المرور.");
@@ -110,7 +111,7 @@ async function onChangePassword() {
   }
 }
 
-/* ===== YouTube helper & escaping ===== */
+/* ===== Helpers ===== */
 function extractYouTubeID(url) {
   if (!url) return null;
   const patterns = [
@@ -139,7 +140,7 @@ function escapeAttr(s) {
   return escapeHtml(s).replaceAll("\n", "");
 }
 
-/* ===== Videos ===== */
+/* ===== Videos (YouTube feed) ===== */
 async function loadVideos() {
   const CHANNEL_ID = "UChFRy4s3_0MVJ3Hmw2AMcoQ";
   const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
@@ -225,8 +226,8 @@ async function onUploadBook(e) {
       body: JSON.stringify(payload)
     });
 
+    // backward compat (old endpoint)
     if (!res.ok) {
-      // محاولة توافقية مع القديم
       res = await fetch(`${BACKEND}/uploadBook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -258,7 +259,7 @@ async function onDeleteBook(e) {
       method: "DELETE",
       headers: { "x-admin-pass": adminPass || "" }
     });
-    const j = await res.json();
+    const j = await res.json().catch(() => ({}));
     alert(j.message || (res.ok ? "تم الحذف" : "فشل"));
     if (res.ok && j.ok) loadBooks();
   } catch (err) {
@@ -267,7 +268,7 @@ async function onDeleteBook(e) {
   }
 }
 
-/* ===== Tips (مع زر تعديل) ===== */
+/* ===== Tips ===== */
 async function loadTips() {
   const container = document.getElementById("tip-list");
   container.innerHTML = `<p style="color:#aaa">جارٍ تحميل الإرشادات...</p>`;
@@ -291,7 +292,6 @@ async function loadTips() {
           </div>` : ""}
       </div>
     `).join("");
-    // ربط أزرار التعديل والحذف
     document.querySelectorAll(".edit-tip").forEach(btn => btn.addEventListener("click", onEditTip));
     document.querySelectorAll(".delete-tip").forEach(btn => btn.addEventListener("click", onDeleteTip));
   } catch (err) {
@@ -311,7 +311,7 @@ async function onUploadTip(e) {
       headers: { "Content-Type": "application/json", "x-admin-pass": adminPass },
       body: JSON.stringify({ text })
     });
-    const j = await res.json();
+    const j = await res.json().catch(() => ({}));
     alert(j.message || (res.ok ? "تمت الإضافة" : "فشل"));
     if (res.ok && j.ok) {
       e.target.reset();
@@ -331,7 +331,7 @@ async function onDeleteTip(e) {
       method: "DELETE",
       headers: { "x-admin-pass": adminPass || "" }
     });
-    const j = await res.json();
+    const j = await res.json().catch(() => ({}));
     alert(j.message || (res.ok ? "تم الحذف" : "فشل"));
     if (res.ok && j.ok) loadTips();
   } catch (err) {
@@ -340,13 +340,12 @@ async function onDeleteTip(e) {
   }
 }
 
-/* ===== تعديل الإرشاد (فتح prompt وتحديث) ===== */
 async function onEditTip(e) {
   const id = e.currentTarget.dataset.id;
   const currentEl = document.getElementById(`tip-text-${id}`);
   const currentText = currentEl ? currentEl.textContent.trim() : "";
   const newText = prompt("حرّر الإرشاد ثم اضغط موافق:", currentText);
-  if (newText === null) return; // إلغاء
+  if (newText === null) return;
   if (newText.trim().length === 0) return alert("النص لا يمكن أن يكون فارغاً.");
   try {
     const res = await fetch(`${BACKEND}/tips/${id}`, {
@@ -354,13 +353,149 @@ async function onEditTip(e) {
       headers: { "Content-Type": "application/json", "x-admin-pass": adminPass || "" },
       body: JSON.stringify({ text: newText.trim() })
     });
-    const j = await res.json();
+    const j = await res.json().catch(() => ({}));
     if (!res.ok) return alert(j.message || "فشل تعديل الإرشاد.");
-    // حدّث النص محلياً فورياً
     if (currentEl) currentEl.textContent = newText.trim();
     alert(j.message || "تم تعديل الإرشاد.");
   } catch (err) {
     console.error("onEditTip:", err);
+    alert("حدث خطأ أثناء التعديل.");
+  }
+}
+
+/* ===== Posts (مشاركات الفيديو) ===== */
+async function loadPosts() {
+  const container = document.getElementById("post-list");
+  container.innerHTML = `<p style="color:#aaa">جارٍ تحميل المشاركات...</p>`;
+  try {
+    const res = await fetch(`${BACKEND}/posts`);
+    if (!res.ok) throw new Error("شبكة");
+    const json = await res.json();
+    const posts = json.ok ? json.data : [];
+    if (!Array.isArray(posts) || posts.length === 0) {
+      container.innerHTML = "<p style='color:#aaa'>لا توجد مشاركات بعد.</p>";
+      return;
+    }
+    const isAdmin = !!adminPass;
+    container.innerHTML = posts.map(p => {
+      const safeTitle = escapeHtml(p.title || "بدون عنوان");
+      const safeDesc = escapeHtml(p.description || "");
+      const vid = p.videoUrl || "";
+      // عرض الفيديو بعنصر video إن كان مصدر مباشر أو iframe إن كان YouTube
+      const ytId = extractYouTubeID(vid);
+      const media = ytId
+        ? `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" rel="noopener noreferrer"><img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;height:200px;object-fit:cover;border-radius:6px;"></a>`
+        : `<video controls preload="metadata" style="width:100%;height:240px;border-radius:6px;"><source src="${escapeAttr(vid)}"></video>`;
+      const controls = isAdmin ? `
+        <div class="tip-controls">
+          <button data-id="${p.id}" class="edit-post">تعديل</button>
+          <button data-id="${p.id}" class="delete-post">حذف</button>
+        </div>` : "";
+      return `
+        <div class="book" style="padding:8px;text-align:right;">
+          <h3 style="margin:0 0 8px 0;padding:8px 6px;">${safeTitle}</h3>
+          <div style="padding:0 10px 8px 10px;">${media}</div>
+          <p style="padding:0 10px 10px 10px;color:#ddd;white-space:pre-line;">${safeDesc}</p>
+          ${controls}
+        </div>
+      `;
+    }).join("");
+    document.querySelectorAll(".edit-post").forEach(btn => btn.addEventListener("click", onEditPost));
+    document.querySelectorAll(".delete-post").forEach(btn => btn.addEventListener("click", onDeletePost));
+  } catch (err) {
+    console.error("loadPosts:", err);
+    container.innerHTML = "<p style='color:#faa'>⚠️ تعذر تحميل المشاركات.</p>";
+  }
+}
+
+async function onUploadPost(e) {
+  e.preventDefault();
+  if (!adminPass) return alert("يجب تسجيل الدخول كمشرف أولاً.");
+  const title = e.target.title.value.trim();
+  const description = e.target.description.value.trim();
+  const fileInput = e.target.file;
+  const urlInput = e.target.videoUrl.value.trim();
+
+  if (!title) return alert("أدخل عنواناً للمشاركة.");
+
+  try {
+    let videoUrl = urlInput || "";
+
+    // إذا رفع ملف، نرفعه إلى الخادم ثم Cloudinary
+    if (!videoUrl && fileInput && fileInput.files && fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`${BACKEND}/uploadVideo`, {
+        method: "POST",
+        headers: { "x-admin-pass": adminPass },
+        body: fd
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) return alert(j.message || "فشل رفع الفيديو.");
+      videoUrl = j.url;
+    }
+
+    if (!videoUrl) return alert("يجب رفع ملف أو وضع رابط للفيديو.");
+
+    // أنشئ المشاركة
+    const postRes = await fetch(`${BACKEND}/posts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-pass": adminPass },
+      body: JSON.stringify({ title, description, videoUrl })
+    });
+    const pj = await postRes.json().catch(() => ({}));
+    if (!postRes.ok) return alert(pj.message || "فشل إنشاء المشاركة.");
+    alert(pj.message || "تمت إضافة المشاركة.");
+    e.target.reset();
+    loadPosts();
+  } catch (err) {
+    console.error("onUploadPost:", err);
+    alert("حدث خطأ أثناء نشر المشاركة.");
+  }
+}
+
+async function onDeletePost(e) {
+  const id = e.currentTarget.dataset.id;
+  if (!confirm("هل تريد حذف هذه المشاركة؟")) return;
+  try {
+    const res = await fetch(`${BACKEND}/posts/${id}`, {
+      method: "DELETE",
+      headers: { "x-admin-pass": adminPass || "" }
+    });
+    const j = await res.json().catch(() => ({}));
+    alert(j.message || (res.ok ? "تم الحذف" : "فشل"));
+    if (res.ok && j.ok) loadPosts();
+  } catch (err) {
+    console.error("onDeletePost:", err);
+    alert("حدث خطأ أثناء الحذف.");
+  }
+}
+
+async function onEditPost(e) {
+  const id = e.currentTarget.dataset.id;
+  try {
+    // جلب تفاصيل المشاركة الحالية من الخادم (أو من DOM لو محفوظ)
+    const getRes = await fetch(`${BACKEND}/posts`);
+    const j = await getRes.json().catch(() => ({}));
+    const posts = j.ok ? j.data : [];
+    const post = posts.find(p => p.id === id);
+    if (!post) return alert("المشاركة غير موجودة.");
+    const newTitle = prompt("حرّر العنوان:", post.title || "");
+    if (newTitle === null) return;
+    const newDesc = prompt("حرّر الوصف:", post.description || "");
+    if (newDesc === null) return;
+    const res = await fetch(`${BACKEND}/posts/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "x-admin-pass": adminPass || "" },
+      body: JSON.stringify({ title: newTitle.trim(), description: newDesc.trim() })
+    });
+    const pj = await res.json().catch(() => ({}));
+    if (!res.ok) return alert(pj.message || "فشل تعديل المشاركة.");
+    alert(pj.message || "تم تعديل المشاركة.");
+    loadPosts();
+  } catch (err) {
+    console.error("onEditPost:", err);
     alert("حدث خطأ أثناء التعديل.");
   }
 }
