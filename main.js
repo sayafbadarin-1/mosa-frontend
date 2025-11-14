@@ -3,8 +3,8 @@ const BACKEND = "https://mosa-backend-dr63.onrender.com"; // <-- غيّره إل
 let adminPass = null; // محفوظ مؤقتاً بالمتصفح (محلي)
 
 // --- Cloudinary config (استبدل القيم) ---
-const CLOUDINARY_CLOUD = "your_cloud_name"; // <-- ضع cloud name هنا
-const CLOUDINARY_PRESET = "your_unsigned_preset"; // <-- ضع upload preset unsigned هنا
+const CLOUDINARY_CLOUD = "dkdnq0zj3"; // <-- ضع cloud name هنا
+const CLOUDINARY_PRESET = "unsigned_posts_preset"; // <-- ضع upload preset unsigned هنا
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("enterBtn").addEventListener("click", onEnter);
@@ -462,3 +462,4 @@ function showPage(id) {
   const backBtn = document.getElementById("backBtn");
   backBtn.style.display = id === "videosPage" ? "none" : "block";
 }
+
