@@ -28,9 +28,9 @@
 
   <nav class="navbar">
     <a data-section="videosPage">📺 الفيديوهات</a>
-    <a data-section="postsPage">✍️ المشاركات</a>
     <a data-section="booksPage">📚 المكتبة</a>
     <a data-section="tipsPage">🌿 إرشادات ونصائح</a>
+    <a data-section="postsPage">✍️ المشاركات</a>
   </nav>
 
   <button id="backBtn" class="back-btn" style="display:none;">⬅ رجوع</button>
@@ -40,23 +40,6 @@
     <section id="videosPage" class="page visible">
       <h2>📺 الفيديوهات</h2>
       <div id="videos" class="videos-grid"></div>
-    </section>
-
-    <!-- المشاركات -->
-    <section id="postsPage" class="page">
-      <h2>✍️ المشاركات</h2>
-
-      <!-- form رفع مشاركة (مسموح للمشرف) -->
-      <form id="upload-post" class="upload-box" style="display:none;">
-        <input type="text" name="title" placeholder="عنوان الفيديو" required />
-        <textarea name="description" placeholder="وصف الفيديو..." rows="3"></textarea>
-        <label style="display:block;margin:8px 0;">ارفع ملف الفيديو (اختياري) أو ضع رابط الفيديو (Cloudinary أو أي رابط):</label>
-        <input type="file" name="file" accept="video/*" />
-        <input type="url" name="videoUrl" placeholder="أو الصق رابط الفيديو هنا" />
-        <button type="submit">نشر المشاركة</button>
-      </form>
-
-      <div id="post-list" class="books-grid"></div>
     </section>
 
     <!-- المكتبة -->
@@ -79,12 +62,23 @@
       </form>
       <div id="tip-list" class="books-grid"></div>
     </section>
+
+    <!-- المشاركات -->
+    <section id="postsPage" class="page">
+      <h2>✍️ المشاركات</h2>
+      <form id="upload-post" class="upload-box" style="display:none;">
+        <input type="text" name="title" placeholder="عنوان المشاركة" required />
+        <textarea name="description" placeholder="وصف المشاركة..." rows="3" required></textarea>
+        <input type="file" name="videoFile" accept="video/*" required />
+        <p style="font-size:0.9em;color:#bbb">سيتم رفع الفيديو إلى Cloudinary ثم حفظ الرابط في الموقع.</p>
+        <button type="submit">نشر المشاركة</button>
+      </form>
+      <div id="post-list" class="books-grid"></div>
+    </section>
   </main>
 
   <footer>
-    <div style="display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;">
-      <button id="adminLogin">تسجيل دخول</button>
-    </div>
+    <button id="adminLogin">تسجيل دخول</button>
     <p>© 2025 / 1447 هـ – موقع الشيخ موسى أحمد الخلايلة</p>
   </footer>
 
