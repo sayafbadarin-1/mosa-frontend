@@ -14,7 +14,6 @@
     <div class="popup">
       <h2>صلِّ على النبي ﷺ</h2>
       <p>قبل أن تتصفح الموقع، صلِّ وسلم على خير الأنام.</p>
-      <!-- added inline onclick as fallback (ensures button works even if listener not attached yet) -->
       <button id="enterBtn" onclick="onEnter()">اللهم صلِّ وسلم عليه</button>
     </div>
   </div>
@@ -77,7 +76,7 @@
         <input type="text" name="title" placeholder="عنوان المشاركة" required />
         <textarea name="description" placeholder="وصف المشاركة..." rows="3"></textarea>
         <input type="file" name="videoFile" accept="video/*" />
-        <p style="font-size:0.9em;color:#bbb">رفع الفيديو يتم بخيارك أو اتركه لنسخة لاحقة.</p>
+        <p style="font-size:0.9em;color:#bbb">إذا لم ترفع فيديو يمكنك لصق رابط الفيديو عند الطلب.</p>
         <button type="submit">نشر المشاركة</button>
       </form>
       <div id="post-list" class="books-grid"></div>
@@ -96,7 +95,7 @@
     <p>© 2025 / 1447 هـ – موقع الشيخ موسى أحمد الخلايلة</p>
   </footer>
 
-  <!-- نافذة تسجيل الدخول (اسم مستخدم + كلمة مرور) -->
+  <!-- نافذة تسجيل الدخول (Fallback: username+password but backend checks password by x-admin-pass) -->
   <div id="loginModal" class="modal hidden" aria-hidden="true">
     <div class="modal-card">
       <h3>تسجيل دخول المشرف</h3>
@@ -118,7 +117,7 @@
       <h4>لوحة الإدارة</h4>
 
       <div id="superadminControls" style="display:none;margin-bottom:12px;">
-        <h5>إنشاء مشرف محلي (مؤقت)</h5>
+        <h5>إنشاء مشرف محلي (محلي فقط)</h5>
         <form id="createLocalAdminForm">
           <input name="newUsername" placeholder="اسم المستخدم" required />
           <input name="newPassword" placeholder="كلمة المرور" required />
