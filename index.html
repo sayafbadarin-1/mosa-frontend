@@ -93,10 +93,10 @@
     </div>
   </footer>
 
-  <!-- صغير: زر تسجيل الدخول في زاوية + سويتش النهاري/الليلي -->
+  <!-- صغير: زر تسجيل الدخول في زاوية (يبقى) -->
   <div id="cornerControls">
     <button id="cornerLogin" class="corner-btn" title="تسجيل دخول المشرف"></button>
-    <button id="themeToggle" class="corner-btn" title="تبديل الوضع"></button>
+    <button id="themeToggle" class="corner-btn" title="تبديل الوضع" style="display:none;"></button>
   </div>
 
   <!-- نافذة تسجيل الدخول (مودال) -->
@@ -115,7 +115,7 @@
     </div>
   </div>
 
-  <!-- لوحة المشرف (تظهر فقط عندما يسجل المشرف الرئيسي) -->
+  <!-- لوحة المشرف -->
   <div id="adminPanel" class="admin-panel hidden" aria-hidden="true">
     <div class="admin-card">
       <h4>لوحة الإدارة</h4>
@@ -145,7 +145,10 @@
         </form>
       </div>
 
-      <button id="closeAdminPanel" class="close-admin">إغلاق</button>
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">
+        <button id="panelLogout" class="inline-logout">تسجيل خروج</button>
+        <button id="closeAdminPanel" class="close-admin">إغلاق</button>
+      </div>
     </div>
   </div>
 
