@@ -1,11 +1,11 @@
-// main.js — نسخة متوافقة مع باك-إندك القديم (x-admin-pass)
-// ضع رابط سيرفرك هنا:
+// main.js — مُبسط ومُعد ليعمل مع مشرف واحد: "sayafbadarin"
+// غيّر BACKEND إلى رابط سيرفرك إن لزم
 const BACKEND = "https://mosa-backend-dr63.onrender.com";
 
-let adminPass = null; // محفوظ مؤقتاً في الذاكرة (الجلسة)
-let loggedUsername = null; // يجب أن يكون "sayafbadarin" لتظهر لوحة الادارة
+let adminPass = null;      // كلمة المرور الجارية (محلياً أثناء الجلسة)
+let loggedUsername = null; // سيكون "sayafbadarin" عند الدخول بنجاح
 
-/* init safe */
+/* تهيئة آمنة */
 function initApp() {
   const enterBtn = document.getElementById("enterBtn");
   if (enterBtn) enterBtn.addEventListener("click", onEnter);
@@ -45,7 +45,7 @@ function initApp() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initApp);
 else initApp();
 
-/* overlay enter */
+/* شاشة البداية */
 function onEnter() {
   const overlay = document.getElementById("overlay");
   if (overlay) overlay.style.display = "none";
@@ -59,7 +59,7 @@ function initializeSite() {
   showPage("videosPage");
 }
 
-/* admin toggle */
+/* زر الزاوية */
 function onAdminToggle() {
   if (adminPass) {
     if (!confirm("هل تريد تسجيل الخروج من وضع المسؤول؟")) return;
@@ -72,15 +72,13 @@ function onAdminToggle() {
   const modal = document.getElementById("loginModal");
   if (modal) modal.classList.remove("hidden");
 }
-
-/* close login */
 function closeLoginModal() {
   const modal = document.getElementById("loginModal");
   if (modal) modal.classList.add("hidden");
   const msg = document.getElementById("loginMsg"); if (msg) msg.textContent = "";
 }
 
-/* login submit: only accept username === 'sayafbadarin' and password validated by backend (x-admin-pass) */
+/* تسجيل الدخول — فقط name === "sayafbadarin" يُقبل؛ الرفض صامت */
 async function onLoginSubmit(e) {
   e.preventDefault();
   const f = e.target;
@@ -90,19 +88,19 @@ async function onLoginSubmit(e) {
 
   if (!username || !password) { if (msgEl) msgEl.textContent = "أكمل الحقول"; return; }
 
+  // قبول فقط للمشرف الرئيسي — رفض صامت إن الاسم غير مطابق
   if (username !== "sayafbadarin") {
-    if (msgEl) msgEl.textContent = "مسموح فقط للمشرف الرئيسي (sayafbadarin)";
     return;
   }
 
-  // تحقق من السيرفر باستخدام الهيدر القديم x-admin-pass
+  // تحقق كلمة المرور عبر الباك إند عبر الهيدر القديم x-admin-pass
   try {
     const res = await fetch(`${BACKEND}/books`, { headers: { "x-admin-pass": password } });
     if (!res.ok) {
-      if (msgEl) msgEl.textContent = "كلمة المرور غير صحيحة أو السيرفر لا يستجيب";
+      if (msgEl) msgEl.textContent = "❌ كلمة المرور غير صحيحة";
       return;
     }
-    // قبول الدخول
+    // دخول ناجح
     adminPass = password;
     loggedUsername = username;
     sessionStorage.setItem("adm_username", username);
@@ -115,7 +113,7 @@ async function onLoginSubmit(e) {
   }
 }
 
-/* update UI: show admin panel button only for logged superadmin */
+/* تحديث واجهة بعد تسجيل/خروج (لوحة تظهر فقط للمشرف الرئيسي) */
 function updateAdminUI() {
   const adminBtn = document.getElementById("cornerLogin");
   const uploadBook = document.getElementById("upload-book");
@@ -132,12 +130,12 @@ function updateAdminUI() {
   if (adminPass && storedUser === "sayafbadarin") {
     if (adminBtn) { adminBtn.textContent = "تسجيل خروج"; adminBtn.title = "تسجيل خروج المشرف"; }
 
-    // show upload forms
+    // إظهار نماذج الرفع
     if (uploadBook) uploadBook.style.display = "block";
     if (uploadTip) uploadTip.style.display = "block";
     if (uploadPost) uploadPost.style.display = "block";
 
-    // show admin panel open + logout
+    // زر فتح لوحة الادارة + زر خروج
     if (adminPlaceholder) {
       adminPlaceholder.innerHTML = `<button id="openAdminPanel">لوحة الإدارة</button> <button id="footerLogout">تسجيل خروج</button>`;
       const openBtn = document.getElementById("openAdminPanel");
@@ -152,7 +150,7 @@ function updateAdminUI() {
   }
 }
 
-/* open/close admin panel */
+/* فتح/إغلاق لوحة الادارة */
 function openAdminPanel() {
   const storedUser = sessionStorage.getItem("adm_username");
   if (!adminPass || storedUser !== "sayafbadarin") { alert("ليس لديك الصلاحية"); return; }
@@ -171,7 +169,7 @@ function onPanelLogout() {
   alert("تم تسجيل الخروج.");
 }
 
-/* change global password on server (legacy endpoint) */
+/* تغيير كلمة المرور على الخادم */
 async function onChangeGlobalPass(e) {
   e.preventDefault();
   if (!adminPass) return alert("يجب تسجيل الدخول أولاً.");
@@ -196,7 +194,7 @@ async function onChangeGlobalPass(e) {
   }
 }
 
-/* helpers */
+/* مساعدات وتحميل المحتوى — تعتمد على المسارات الموجودة في الباك-إند */
 function escapeHtml(unsafe) {
   if (unsafe === null || unsafe === undefined) return "";
   return String(unsafe).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
@@ -242,7 +240,7 @@ function extractYouTubeID(url) {
   return null;
 }
 
-/* Books, Tips, Posts — نفس من قبل، تستخدم header x-admin-pass = adminPass عند العمليات المحمية */
+/* Books */
 async function loadBooks(){
   const c = document.getElementById("book-list");
   if (!c) return;
@@ -285,7 +283,6 @@ async function loadBooks(){
     c.innerHTML = "<p style='color:#faa'>⚠️ تعذر تحميل المكتبة.</p>";
   }
 }
-
 async function onUploadBook(e){
   e.preventDefault();
   if (!adminPass) return alert("يجب تسجيل الدخول كمشرف أولاً.");
