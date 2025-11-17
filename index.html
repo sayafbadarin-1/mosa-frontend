@@ -95,12 +95,12 @@
     <p>© 2025 / 1447 هـ – موقع الشيخ موسى أحمد الخلايلة</p>
   </footer>
 
-  <!-- نافذة تسجيل الدخول (Fallback: username+password but backend checks password by x-admin-pass) -->
+  <!-- نافذة تسجيل الدخول (username+password) -->
   <div id="loginModal" class="modal hidden" aria-hidden="true">
     <div class="modal-card">
       <h3>تسجيل دخول المشرف</h3>
       <form id="loginForm">
-        <input type="text" name="username" placeholder="اسم المستخدم (مثال: sayafbadarin)" required />
+        <input type="text" name="username" placeholder="اسم المستخدم (يجب أن يكون sayafbadarin)" required />
         <input type="password" name="password" placeholder="كلمة المرور" required />
         <div style="margin-top:10px">
           <button type="submit">دخول</button>
@@ -111,22 +111,10 @@
     </div>
   </div>
 
-  <!-- لوحة المشرف (تظهر فقط للمشرف الرئيسي) -->
+  <!-- لوحة المشرف (تظهر فقط للمشرف الرئيسي sayafbadarin) -->
   <div id="adminPanel" class="admin-panel hidden" aria-hidden="true">
     <div class="admin-card">
       <h4>لوحة الإدارة</h4>
-
-      <div id="superadminControls" style="display:none;margin-bottom:12px;">
-        <h5>إنشاء مشرف محلي (محلي فقط)</h5>
-        <form id="createLocalAdminForm">
-          <input name="newUsername" placeholder="اسم المستخدم" required />
-          <input name="newPassword" placeholder="كلمة المرور" required />
-          <button type="submit">إنشاء (محلي)</button>
-        </form>
-
-        <h5 style="margin-top:12px;">قائمة المشرفين المحليين</h5>
-        <div id="localAdminsList"></div>
-      </div>
 
       <h5>تغيير كلمة المرور العالمية (الخادم)</h5>
       <form id="changeGlobalPassForm">
