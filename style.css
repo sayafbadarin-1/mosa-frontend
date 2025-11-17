@@ -94,9 +94,6 @@ body {
 .inline-logout, .close-admin { padding:8px 12px; border-radius:6px; border:none; cursor:pointer; }
 .inline-logout { background: var(--gold); color:#000; margin-right:6px; }
 
-/* القائمة المحلية للمشرفين */
-#localAdminsList { max-height:160px; overflow:auto; border-top:1px dashed #333; margin-top:8px; padding-top:8px; }
-
 /* زر الرجوع — أكبر ومندمج */
 .back-btn {
   background: #d4af37 !important;
