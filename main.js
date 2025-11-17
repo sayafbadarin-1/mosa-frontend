@@ -1,11 +1,14 @@
-// main.js — مُبسط ومُعد ليعمل مع مشرف واحد: "sayafbadarin"
-// غيّر BACKEND إلى رابط سيرفرك إن لزم
-const BACKEND = "https://mosa-backend-dr63.onrender.com";
+// main.js — كامل ومفعل رفع الفيديو إلى Cloudinary (unsigned)
+// متوافق مع الباك-إند القديم الذي يستخدم x-admin-pass
+// تذكّر: عدّل القيم التالية إلى القيم الحقيقية لسيرفرك وحساب Cloudinary
+const BACKEND = "https://mosa-backend-dr63.onrender.com"; // <-- ضع رابط سيرفرك هنا
+const CLOUDINARY_CLOUD = "dkdnq0zj3";                    // <-- ضع cloud name هنا
+const CLOUDINARY_PRESET = "unsigned_posts_preset";       // <-- ضع upload preset unsigned هنا
 
 let adminPass = null;      // كلمة المرور الجارية (محلياً أثناء الجلسة)
-let loggedUsername = null; // سيكون "sayafbadarin" عند الدخول بنجاح
+let loggedUsername = null; // يكون "sayafbadarin" عند نجاح الدخول
 
-/* تهيئة آمنة */
+/* ================= INIT ================= */
 function initApp() {
   const enterBtn = document.getElementById("enterBtn");
   if (enterBtn) enterBtn.addEventListener("click", onEnter);
@@ -14,19 +17,23 @@ function initApp() {
   const backBtn = document.getElementById("backBtn");
   if (backBtn) backBtn.addEventListener("click", () => showPage("videosPage"));
 
+  // corner login button
   const corner = document.getElementById("cornerLogin");
   if (corner) corner.addEventListener("click", onAdminToggle);
 
+  // login modal
   const loginCancel = document.getElementById("loginCancel");
   if (loginCancel) loginCancel.addEventListener("click", closeLoginModal);
   const loginForm = document.getElementById("loginForm");
   if (loginForm) loginForm.addEventListener("submit", onLoginSubmit);
 
+  // admin panel buttons
   const closeAdmin = document.getElementById("closeAdminPanel");
   if (closeAdmin) closeAdmin.addEventListener("click", closeAdminPanel);
   const panelLogout = document.getElementById("panelLogout");
   if (panelLogout) panelLogout.addEventListener("click", onPanelLogout);
 
+  // upload forms
   const uploadBookForm = document.getElementById("upload-book");
   if (uploadBookForm) uploadBookForm.addEventListener("submit", onUploadBook);
   const uploadTipForm = document.getElementById("upload-tip");
@@ -34,18 +41,24 @@ function initApp() {
   const uploadPostForm = document.getElementById("upload-post");
   if (uploadPostForm) uploadPostForm.addEventListener("submit", onUploadPost);
 
+  // channels
   const tg = document.getElementById("tgBtn"); if (tg) tg.href = "https://t.me/musaahmadkh";
   const wa = document.getElementById("waBtn"); if (wa) wa.href = "https://chat.whatsapp.com/JaAji0WfEat8dVI1CPB4c1?mode=hqrt1";
 
+  // default dark
   document.body.classList.remove("light");
   document.body.classList.add("dark");
+
+  // restore session username if any
+  const stored = sessionStorage.getItem("adm_username");
+  if (stored) loggedUsername = stored;
 
   updateAdminUI();
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initApp);
 else initApp();
 
-/* شاشة البداية */
+/* ================= Overlay / Initialization content ================= */
 function onEnter() {
   const overlay = document.getElementById("overlay");
   if (overlay) overlay.style.display = "none";
@@ -59,7 +72,7 @@ function initializeSite() {
   showPage("videosPage");
 }
 
-/* زر الزاوية */
+/* ================= Admin UI / Login ================= */
 function onAdminToggle() {
   if (adminPass) {
     if (!confirm("هل تريد تسجيل الخروج من وضع المسؤول؟")) return;
@@ -78,7 +91,7 @@ function closeLoginModal() {
   const msg = document.getElementById("loginMsg"); if (msg) msg.textContent = "";
 }
 
-/* تسجيل الدخول — فقط name === "sayafbadarin" يُقبل؛ الرفض صامت */
+// تسجيل الدخول: لقبول المشرف الوحيد sayafbadarin، التحقق من كلمة المرور عبر x-admin-pass
 async function onLoginSubmit(e) {
   e.preventDefault();
   const f = e.target;
@@ -90,10 +103,11 @@ async function onLoginSubmit(e) {
 
   // قبول فقط للمشرف الرئيسي — رفض صامت إن الاسم غير مطابق
   if (username !== "sayafbadarin") {
+    // رفض صامت كما طلبت — لا رسالة.
     return;
   }
 
-  // تحقق كلمة المرور عبر الباك إند عبر الهيدر القديم x-admin-pass
+  // تحقق كلمة المرور عبر الباك إند: نطلب /books مع الهيدر x-admin-pass
   try {
     const res = await fetch(`${BACKEND}/books`, { headers: { "x-admin-pass": password } });
     if (!res.ok) {
@@ -113,7 +127,6 @@ async function onLoginSubmit(e) {
   }
 }
 
-/* تحديث واجهة بعد تسجيل/خروج (لوحة تظهر فقط للمشرف الرئيسي) */
 function updateAdminUI() {
   const adminBtn = document.getElementById("cornerLogin");
   const uploadBook = document.getElementById("upload-book");
@@ -135,7 +148,7 @@ function updateAdminUI() {
     if (uploadTip) uploadTip.style.display = "block";
     if (uploadPost) uploadPost.style.display = "block";
 
-    // زر فتح لوحة الادارة + زر خروج
+    // أزرار الفوتر للادمن
     if (adminPlaceholder) {
       adminPlaceholder.innerHTML = `<button id="openAdminPanel">لوحة الإدارة</button> <button id="footerLogout">تسجيل خروج</button>`;
       const openBtn = document.getElementById("openAdminPanel");
@@ -150,7 +163,6 @@ function updateAdminUI() {
   }
 }
 
-/* فتح/إغلاق لوحة الادارة */
 function openAdminPanel() {
   const storedUser = sessionStorage.getItem("adm_username");
   if (!adminPass || storedUser !== "sayafbadarin") { alert("ليس لديك الصلاحية"); return; }
@@ -169,7 +181,7 @@ function onPanelLogout() {
   alert("تم تسجيل الخروج.");
 }
 
-/* تغيير كلمة المرور على الخادم */
+/* ================= Change global password (server) ================= */
 async function onChangeGlobalPass(e) {
   e.preventDefault();
   if (!adminPass) return alert("يجب تسجيل الدخول أولاً.");
@@ -194,13 +206,14 @@ async function onChangeGlobalPass(e) {
   }
 }
 
-/* مساعدات وتحميل المحتوى — تعتمد على المسارات الموجودة في الباك-إند */
+/* ================= Helpers ================= */
 function escapeHtml(unsafe) {
   if (unsafe === null || unsafe === undefined) return "";
   return String(unsafe).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
+function escapeAttr(s){ return escapeHtml(s).replaceAll("\n",""); }
 
-/* Videos */
+/* ================= Videos (rss) ================= */
 async function loadVideos() {
   const CHANNEL_ID = "UChFRy4s3_0MVJ3Hmw2AMcoQ";
   const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
@@ -219,7 +232,7 @@ async function loadVideos() {
       return `
         <div class="video">
           <a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener noreferrer">
-            ${thumb ? `<img src="${thumb}" width="340" height="200" style="border-radius:10px;border:none;">` : ""}
+            ${thumb ? `<img src="${thumb}" width="340" height="200" loading="lazy">` : ""}
           </a>
           <p>${escapeHtml(v.title)}</p>
         </div>`;
@@ -240,7 +253,7 @@ function extractYouTubeID(url) {
   return null;
 }
 
-/* Books */
+/* ================= Books (CRUD) ================= */
 async function loadBooks(){
   const c = document.getElementById("book-list");
   if (!c) return;
@@ -263,7 +276,7 @@ async function loadBooks(){
       return `
       <div class="book">
         <h3 style="padding:12px 10px;margin:0;">${safeTitle}</h3>
-        ${preview ? `<iframe src="${preview}" width="100%" height="400" loading="lazy"></iframe>` : `<p style="color:#aaa;padding:12px;">🔗 لا يمكن عرض معاينة لهذا الرابط — <a href="${escapeHtml(b.url)}" target="_blank" rel="noopener">افتح الرابط</a></p>`}
+        ${preview ? `<iframe src="${preview}" width="100%" height="400" loading="lazy"></iframe>` : `<p style="color:#aaa;padding:12px;">🔗 لا يمكن عرض معاينة لهذا الرابط — <a href="${escapeAttr(b.url)}" target="_blank" rel="noopener">افتح الرابط</a></p>`}
         ${controls}
       </div>`;
     }).join("");
@@ -303,7 +316,7 @@ async function onUploadBook(e){
   } catch { alert("حدث خطأ أثناء الإرسال."); }
 }
 
-/* Tips */
+/* ================= Tips ================= */
 async function loadTips() {
   const container = document.getElementById("tip-list");
   if (!container) return;
@@ -382,7 +395,25 @@ async function onDeleteTip(e) {
   } catch { alert("حدث خطأ أثناء الحذف."); }
 }
 
-/* Posts */
+/* ================= Posts (with Cloudinary upload) ================= */
+
+// رفع ملف إلى Cloudinary (unsigned upload)
+// يعيد JSON من Cloudinary أو يرمي خطأ
+async function uploadToCloudinary(file) {
+  if (!CLOUDINARY_CLOUD || !CLOUDINARY_PRESET) throw new Error("يرجى ضبط إعدادات Cloudinary في main.js");
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/upload`;
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", CLOUDINARY_PRESET);
+  // resource_type للـvideo عادة يحدد تلقائياً من Cloudinary, لكن إذا احتجت force: fd.append('resource_type','video');
+  const res = await fetch(url, { method: "POST", body: fd });
+  if (!res.ok) {
+    const txt = await res.text().catch(()=>"");
+    throw new Error("فشل رفع الملف إلى Cloudinary. " + (txt || res.status));
+  }
+  return res.json();
+}
+
 async function loadPosts() {
   const container = document.getElementById("post-list");
   if (!container) return;
@@ -400,7 +431,7 @@ async function loadPosts() {
     container.innerHTML = posts.map(p => {
       const safeTitle = escapeHtml(p.title || "بدون عنوان");
       const safeDesc = escapeHtml(p.description || "");
-      const videoEmbed = p.videoUrl ? `<video controls src="${escapeHtml(p.videoUrl)}" style="width:100%;max-height:360px;border-radius:8px;" preload="metadata"></video>` : `<p style="color:#aaa">لا يوجد فيديو</p>`;
+      const videoEmbed = p.videoUrl ? `<video controls src="${escapeAttr(p.videoUrl)}" style="width:100%;max-height:360px;border-radius:8px;" preload="metadata"></video>` : `<p style="color:#aaa">لا يوجد فيديو</p>`;
       const controls = isAdmin ? `<div class="tip-controls"><button data-id="${p.id}" class="edit-post">تعديل</button><button data-id="${p.id}" class="delete-post">حذف</button></div>` : "";
       return `
         <div class="book" style="padding:12px;text-align:right;">
@@ -418,30 +449,66 @@ async function loadPosts() {
     container.innerHTML = "<p style='color:#faa'>⚠️ تعذر تحميل المشاركات.</p>";
   }
 }
+
 async function onUploadPost(e) {
   e.preventDefault();
   if (!adminPass) return alert("يجب تسجيل الدخول كمشرف أولاً.");
   const title = e.target.title.value.trim();
   const description = e.target.description.value.trim();
   const fileInput = e.target.videoFile;
+
   if (!title) return alert("الرجاء إدخال عنوان المشاركة.");
-  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-    const videoUrl = prompt("أدخل رابط الفيديو (أو اتركه فارغاً للنشر بدون فيديو):", "");
-    try {
-      const res = await fetch(`${BACKEND}/posts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-pass": adminPass },
-        body: JSON.stringify({ title, description, videoUrl })
-      });
-      const j = await res.json().catch(()=>({}));
-      if (!res.ok) return alert(j.message || "فشل الإضافة");
-      alert(j.message || "تمت الإضافة");
-      e.target.reset(); loadPosts();
+
+  try {
+    let videoUrl = "";
+
+    // 1) إذا اختر ملف — ارفعه إلى Cloudinary
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+
+      // (اختياري) تحقق على الحجم — غير الحد لو أردت
+      const maxMB = 500; // أقصى حجم مسموح في المتصفح قبل تحذير
+      if (file.size > maxMB * 1024 * 1024) {
+        if (!confirm(`الملف كبير (${Math.round(file.size/1024/1024)}MB). تود المتابعة والرفع؟`)) return;
+      }
+
+      // اعرض حالة مؤقتة على الزر
+      const submitBtn = e.target.querySelector("button[type='submit']");
+      const oldText = submitBtn ? submitBtn.textContent : null;
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "جارٍ الرفع..."; }
+
+      const upRes = await uploadToCloudinary(file);
+      videoUrl = upRes.secure_url || upRes.url || "";
+      if (!videoUrl) throw new Error("لم نحصل على رابط الفيديو من Cloudinary");
+
+      if (submitBtn) { submitBtn.disabled = false; if (oldText) submitBtn.textContent = oldText; }
+    } else {
+      // 2) لا ملف => طلب رابط من المستخدم (خيار بديل)
+      const inputUrl = prompt("أدخل رابط الفيديو (مثال رابط Cloudinary أو CDN أو YouTube):", "");
+      if (inputUrl === null) return; // ألغى
+      videoUrl = (inputUrl || "").trim();
+    }
+
+    // 3) إرسال المشاركة للباك-إند
+    const res = await fetch(`${BACKEND}/posts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-pass": adminPass },
+      body: JSON.stringify({ title, description, videoUrl })
+    });
+    const j = await res.json().catch(()=>({}));
+    if (!res.ok) {
+      alert(j.message || "فشل حفظ المشاركة على الخادم.");
       return;
-    } catch { alert("فشل الإضافة"); return; }
+    }
+    alert(j.message || "تمت إضافة المشاركة.");
+    e.target.reset();
+    loadPosts();
+  } catch (err) {
+    console.error("onUploadPost error:", err);
+    alert("حدث خطأ أثناء رفع المشاركة: " + (err.message || err));
   }
-  alert("رفع الفيديو عبر Cloudinary غير مفعّل في هذه النسخة. استخدم حقل إدخال الرابط.");
 }
+
 async function onDeletePost(e) {
   const id = e.currentTarget.dataset.id;
   if (!confirm("هل تريد حذف هذه المشاركة؟")) return;
@@ -456,6 +523,7 @@ async function onDeletePost(e) {
     loadPosts();
   } catch { alert("حدث خطأ أثناء الحذف."); }
 }
+
 async function onEditPost(e) {
   const id = e.currentTarget.dataset.id;
   const currentTitle = prompt("ادخل العنوان الجديد (اتركه فارغاً إن لم تغير):", "");
@@ -481,7 +549,7 @@ async function onEditPost(e) {
   } catch { alert("حدث خطأ أثناء التعديل."); }
 }
 
-/* navigation */
+/* ================= Navigation helper ================= */
 function showPage(id) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("visible"));
   const page = document.getElementById(id);
