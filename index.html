@@ -70,7 +70,7 @@
         <input type="text" name="title" placeholder="عنوان المشاركة" required />
         <textarea name="description" placeholder="وصف المشاركة..." rows="3" required></textarea>
         <input type="file" name="videoFile" accept="video/*" required />
-        <p style="font-size:0.9em;color:#bbb">سيتم رفع الفيديو إلى Cloudinary ثم حفظ الرابط في الموقع.</p>
+        <p style="font-size:0.9em;color:#666">سيتم رفع الفيديو إلى Cloudinary ثم حفظ الرابط في الموقع.</p>
         <button type="submit">نشر المشاركة</button>
       </form>
       <div id="post-list" class="books-grid"></div>
@@ -78,9 +78,76 @@
   </main>
 
   <footer>
-    <button id="adminLogin">تسجيل دخول</button>
-    <p>© 2025 / 1447 هـ – موقع الشيخ موسى أحمد الخلايلة</p>
+    <div class="footer-top">
+      <div id="channels" class="channels">
+        <span>القنوات:</span>
+        <a id="tgBtn" class="channel-btn" target="_blank" rel="noopener noreferrer">قناة التلجرام</a>
+        <a id="waBtn" class="channel-btn" target="_blank" rel="noopener noreferrer">جروب الواتساب</a>
+      </div>
+
+      <div id="adminAreaPlaceholder" class="admin-area-placeholder"></div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2025 / 1447 هـ – موقع الشيخ موسى أحمد الخلايلة</p>
+    </div>
   </footer>
+
+  <!-- صغير: زر تسجيل الدخول في زاوية + سويتش النهاري/الليلي -->
+  <div id="cornerControls">
+    <button id="cornerLogin" class="corner-btn" title="تسجيل دخول المشرف"></button>
+    <button id="themeToggle" class="corner-btn" title="تبديل الوضع"></button>
+  </div>
+
+  <!-- نافذة تسجيل الدخول (مودال) -->
+  <div id="loginModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card">
+      <h3>تسجيل دخول المشرف</h3>
+      <form id="loginForm">
+        <input type="text" name="username" placeholder="اسم المستخدم" required />
+        <input type="password" name="password" placeholder="كلمة المرور" required />
+        <div class="modal-actions">
+          <button type="submit">دخول</button>
+          <button type="button" id="loginCancel">إلغاء</button>
+        </div>
+      </form>
+      <div id="loginMsg" class="small muted"></div>
+    </div>
+  </div>
+
+  <!-- لوحة المشرف (تظهر فقط عندما يسجل المشرف الرئيسي) -->
+  <div id="adminPanel" class="admin-panel hidden" aria-hidden="true">
+    <div class="admin-card">
+      <h4>لوحة الإدارة</h4>
+
+      <div id="superadminControls" style="display:none;">
+        <h5>إنشاء مشرف جديد</h5>
+        <form id="createAdminForm" class="inline-form">
+          <input name="newUsername" placeholder="اسم المستخدم الجديد" required />
+          <input name="newPassword" placeholder="كلمة المرور" required />
+          <select name="newRole">
+            <option value="admin">مشرف</option>
+            <option value="superadmin">مشرف رئيسي</option>
+          </select>
+          <button type="submit">إنشاء</button>
+        </form>
+
+        <h5>قائمة المستخدمين</h5>
+        <div id="usersList" class="users-list"></div>
+      </div>
+
+      <div id="changeOwnPass">
+        <h5>تغيير كلمة المرور (خاصتك)</h5>
+        <form id="changeOwnPassForm" class="inline-form">
+          <input name="currentPassword" type="password" placeholder="كلمة المرور الحالية" required />
+          <input name="newPassword" type="password" placeholder="كلمة المرور الجديدة" required />
+          <button type="submit">تغيير</button>
+        </form>
+      </div>
+
+      <button id="closeAdminPanel" class="close-admin">إغلاق</button>
+    </div>
+  </div>
 
   <script src="main.js"></script>
 </body>
