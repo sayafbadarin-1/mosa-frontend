@@ -7,14 +7,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+
   <!-- شاشة البداية -->
   <div id="overlay">
     <div class="popup">
       <h2>صلِّ على النبي ﷺ</h2>
       <p>قبل أن تتصفح الموقع، صلِّ وسلم على خير الأنام.</p>
-      <button id="enterBtn">اللهم صلِّ وسلم عليه</button>
+      <button id="enterBtn" onclick="onEnter()">اللهم صلِّ وسلم عليه</button>
     </div>
+  </div>
+
+  <!-- زر تسجيل الدخول الصغير في الزاوية -->
+  <div id="cornerControls">
+    <button id="cornerLogin" class="corner-btn" title="تسجيل الدخول">🔒</button>
   </div>
 
   <header class="hero">
@@ -29,7 +36,7 @@
   <nav class="navbar">
     <a data-section="videosPage">📺 الفيديوهات</a>
     <a data-section="booksPage">📚 المكتبة</a>
-    <a data-section="tipsPage">🌿 إرشادات ونصائح</a>
+    <a data-section="tipsPage">🌿 إرشادات</a>
     <a data-section="postsPage">✍️ المشاركات</a>
   </nav>
 
@@ -47,18 +54,18 @@
       <h2>📚 المكتبة</h2>
       <form id="upload-book" class="upload-box" style="display:none;">
         <input type="text" name="title" placeholder="اسم الكتاب" required />
-        <input type="url" name="url" placeholder="رابط الكتاب من Google Drive" required />
-        <button type="submit">إضافة الكتاب</button>
+        <input type="url" name="url" placeholder="رابط الكتاب" required />
+        <button>إضافة</button>
       </form>
       <div id="book-list" class="books-grid"></div>
     </section>
 
     <!-- الإرشادات -->
     <section id="tipsPage" class="page">
-      <h2>🌿 إرشادات ونصائح</h2>
+      <h2>🌿 إرشادات</h2>
       <form id="upload-tip" class="upload-box" style="display:none;">
-        <textarea name="text" placeholder="أدخل النص هنا..." rows="4" required></textarea>
-        <button type="submit">إضافة الإرشاد</button>
+        <textarea name="text" placeholder="أدخل النص..." rows="3" required></textarea>
+        <button>إضافة</button>
       </form>
       <div id="tip-list" class="books-grid"></div>
     </section>
@@ -68,90 +75,69 @@
       <h2>✍️ المشاركات</h2>
       <form id="upload-post" class="upload-box" style="display:none;">
         <input type="text" name="title" placeholder="عنوان المشاركة" required />
-        <textarea name="description" placeholder="وصف المشاركة..." rows="3" required></textarea>
+        <textarea name="description" placeholder="الوصف..." rows="3"></textarea>
         <input type="file" name="videoFile" accept="video/*" required />
-        <p style="font-size:0.9em;color:#666">سيتم رفع الفيديو إلى Cloudinary ثم حفظ الرابط في الموقع.</p>
-        <button type="submit">نشر المشاركة</button>
+        <button>نشر</button>
       </form>
       <div id="post-list" class="books-grid"></div>
     </section>
   </main>
 
+  <!-- منطقة الإدارة (تظهر فقط عند تسجيل الدخول) -->
   <footer>
-    <div class="footer-top">
-      <div id="channels" class="channels">
-        <span>القنوات:</span>
-        <a id="tgBtn" class="channel-btn" target="_blank" rel="noopener noreferrer">قناة التلجرام</a>
-        <a id="waBtn" class="channel-btn" target="_blank" rel="noopener noreferrer">جروب الواتساب</a>
-      </div>
+    <div id="adminAreaPlaceholder"></div>
 
-      <div id="adminAreaPlaceholder" class="admin-area-placeholder"></div>
-    </div>
-
-    <div class="footer-bottom">
-      <p>© 2025 / 1447 هـ – موقع الشيخ موسى أحمد الخلايلة</p>
-    </div>
+    <p>© 2025 / 1447 هـ – موقع الشيخ موسى أحمد الخلايلة</p>
   </footer>
 
-  <!-- صغير: زر تسجيل الدخول في زاوية (يبقى) -->
-  <div id="cornerControls">
-    <button id="cornerLogin" class="corner-btn" title="تسجيل دخول المشرف"></button>
-    <button id="themeToggle" class="corner-btn" title="تبديل الوضع" style="display:none;"></button>
-  </div>
-
-  <!-- نافذة تسجيل الدخول (مودال) -->
-  <div id="loginModal" class="modal hidden" aria-hidden="true">
+  <!-- نافذة تسجيل الدخول -->
+  <div id="loginModal" class="modal hidden">
     <div class="modal-card">
       <h3>تسجيل دخول المشرف</h3>
       <form id="loginForm">
         <input type="text" name="username" placeholder="اسم المستخدم" required />
         <input type="password" name="password" placeholder="كلمة المرور" required />
-        <div class="modal-actions">
-          <button type="submit">دخول</button>
-          <button type="button" id="loginCancel">إلغاء</button>
-        </div>
+        <button>تسجيل الدخول</button>
       </form>
-      <div id="loginMsg" class="small muted"></div>
+      <button id="loginCancel" class="close">إغلاق</button>
+      <p id="loginMsg"></p>
     </div>
   </div>
 
-  <!-- لوحة المشرف -->
-  <div id="adminPanel" class="admin-panel hidden" aria-hidden="true">
+  <!-- لوحة الإدارة -->
+  <div id="adminPanel" class="admin-panel hidden">
     <div class="admin-card">
-      <h4>لوحة الإدارة</h4>
+      <h3>لوحة الإدارة</h3>
 
       <div id="superadminControls" style="display:none;">
-        <h5>إنشاء مشرف جديد</h5>
-        <form id="createAdminForm" class="inline-form">
-          <input name="newUsername" placeholder="اسم المستخدم الجديد" required />
+        <h4>إنشاء مشرف جديد</h4>
+        <form id="createAdminForm">
+          <input name="newUsername" placeholder="اسم المستخدم" required />
           <input name="newPassword" placeholder="كلمة المرور" required />
           <select name="newRole">
             <option value="admin">مشرف</option>
             <option value="superadmin">مشرف رئيسي</option>
           </select>
-          <button type="submit">إنشاء</button>
+          <button>إنشاء</button>
         </form>
 
-        <h5>قائمة المستخدمين</h5>
-        <div id="usersList" class="users-list"></div>
+        <h4>قائمة المشرفين</h4>
+        <div id="usersList"></div>
       </div>
 
-      <div id="changeOwnPass">
-        <h5>تغيير كلمة المرور (خاصتك)</h5>
-        <form id="changeOwnPassForm" class="inline-form">
-          <input name="currentPassword" type="password" placeholder="كلمة المرور الحالية" required />
-          <input name="newPassword" type="password" placeholder="كلمة المرور الجديدة" required />
-          <button type="submit">تغيير</button>
-        </form>
-      </div>
+      <h4>تغيير كلمة المرور الخاصة بك</h4>
+      <form id="changeOwnPassForm">
+        <input name="currentPassword" placeholder="الحالية" required />
+        <input name="newPassword" placeholder="الجديدة" required />
+        <button>تغيير</button>
+      </form>
 
-      <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">
-        <button id="panelLogout" class="inline-logout">تسجيل خروج</button>
-        <button id="closeAdminPanel" class="close-admin">إغلاق</button>
-      </div>
+      <button id="panelLogout" class="logout-btn">تسجيل خروج</button>
+      <button id="closeAdminPanel" class="close">إغلاق</button>
     </div>
   </div>
 
   <script src="main.js"></script>
+
 </body>
 </html>
