@@ -1,36 +1,35 @@
-// main.js (محدث: token auth, UI for superadmin, theme toggle, channels)
-// ⚠️ عدّل BACKEND و Cloudinary حسب إعداداتك
-const BACKEND = "https://mosa-backend-dr63.onrender.com"; // <-- غيّره إلى رابط سيرفرك النهائي
+// main.js (نهائي): token auth, superadmin-only admin button, force dark theme, logout for admins
+// ⚠️ عدِّل BACKEND إلى سيرفرك (مثلاً http://localhost:4000 أثناء التطوير)
+const BACKEND = "https://mosa-backend-dr63.onrender.com";
 let authToken = localStorage.getItem("authToken") || null;
 let currentRole = localStorage.getItem("currentRole") || null;
 let currentUsername = localStorage.getItem("currentUsername") || null;
 
-// --- Cloudinary config (استبدل القيم) ---
-const CLOUDINARY_CLOUD = "dkdnq0zj3"; // <-- ضع cloud name هنا
-const CLOUDINARY_PRESET = "unsigned_posts_preset"; // <-- ضع upload preset unsigned هنا
+// --- Cloudinary config (ضع القيم الحقيقية إن رغبت بالرفع مباشرة) ---
+const CLOUDINARY_CLOUD = "dkdnq0zj3";
+const CLOUDINARY_PRESET = "unsigned_posts_preset";
 
 document.addEventListener("DOMContentLoaded", () => {
-  // overlay entry
   document.getElementById("enterBtn").addEventListener("click", onEnter);
-
-  // nav
   document.querySelectorAll(".navbar a").forEach(a => a.addEventListener("click", () => showPage(a.dataset.section)));
   document.getElementById("backBtn").addEventListener("click", () => showPage("videosPage"));
 
-  // corner controls
   document.getElementById("cornerLogin").addEventListener("click", openLoginModal);
-  document.getElementById("themeToggle").addEventListener("click", toggleTheme);
+  // themeToggle hidden in HTML
 
-  // login modal handlers
   document.getElementById("loginCancel").addEventListener("click", closeLoginModal);
   document.getElementById("loginForm").addEventListener("submit", onLoginSubmit);
 
-  // admin panel
   document.getElementById("closeAdminPanel").addEventListener("click", closeAdminPanel);
   document.getElementById("createAdminForm").addEventListener("submit", onCreateAdmin);
   document.getElementById("changeOwnPassForm").addEventListener("submit", onChangeOwnPassword);
 
-  // upload forms
+  // logout inside panel
+  document.getElementById("panelLogout").addEventListener("click", () => {
+    if (!confirm("هل تريد تسجيل الخروج؟")) return;
+    logout();
+  });
+
   const uploadBookForm = document.getElementById("upload-book");
   if (uploadBookForm) uploadBookForm.addEventListener("submit", onUploadBook);
   const uploadTipForm = document.getElementById("upload-tip");
@@ -38,20 +37,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const uploadPostForm = document.getElementById("upload-post");
   if (uploadPostForm) uploadPostForm.addEventListener("submit", onUploadPost);
 
-  // channels links
   document.getElementById("tgBtn").href = "https://t.me/musaahmadkh";
   document.getElementById("waBtn").href = "https://chat.whatsapp.com/JaAji0WfEat8dVI1CPB4c1?mode=hqrt1";
 
-  // init theme (default = day/light on first visit)
-  initTheme();
+  // force dark theme
+  forceDarkTheme();
 
-  // update corner UI based on auth
   updateCornerUI();
-
-  // don't auto-load site until overlay dismissed
+  // site loads after overlay dismissed
 });
 
-// ---------- Entry ----------
 function onEnter() {
   document.getElementById("overlay").style.display = "none";
   initializeSite();
@@ -62,58 +57,56 @@ function initializeSite() {
   loadTips();
   loadPosts();
   showPage("videosPage");
-  // If authenticated, fetch /auth/me to confirm role
   if (authToken) fetchMe();
 }
 
-/* ===== Theme (light/dark) ===== */
-function initTheme() {
-  const saved = localStorage.getItem("theme");
-  if (!saved) {
-    // default day (light)
-    document.body.classList.add("light");
-    localStorage.setItem("theme", "light");
-  } else {
-    document.body.classList.toggle("light", saved === "light");
-    document.body.classList.toggle("dark", saved === "dark");
-  }
-  refreshThemeButtons();
-}
-function toggleTheme() {
-  const current = localStorage.getItem("theme") || "light";
-  const nxt = current === "light" ? "dark" : "light";
-  localStorage.setItem("theme", nxt);
-  document.body.classList.toggle("light", nxt === "light");
-  document.body.classList.toggle("dark", nxt === "dark");
-  refreshThemeButtons();
-}
-function refreshThemeButtons() {
-  const tbtn = document.getElementById("themeToggle");
-  tbtn.textContent = localStorage.getItem("theme") === "light" ? "وضع: نهاري" : "وضع: ليلي";
-  const lbtn = document.getElementById("cornerLogin");
-  lbtn.title = authToken ? `مستخدم: ${currentUsername || "—"}` : "تسجيل دخول المشرف";
+/* ===== Theme: force dark only ===== */
+function forceDarkTheme() {
+  document.body.classList.remove("light");
+  document.body.classList.add("dark");
+  try { localStorage.setItem("theme", "dark"); } catch (e) {}
+  const themeBtn = document.getElementById("themeToggle");
+  if (themeBtn) themeBtn.style.display = "none";
 }
 
-/* ===== Auth UI (corner login, modal, admin panel) ===== */
+/* ===== Auth UI and placeholders ===== */
 function updateCornerUI() {
   const lbtn = document.getElementById("cornerLogin");
   if (authToken) {
     lbtn.textContent = "●";
     lbtn.classList.add("logged");
-    // show admin area placeholder (button to open panel)
-    ensureAdminPlaceholder();
+    if (currentRole === "superadmin") {
+      ensureAdminPlaceholderForSuperadmin();
+    } else {
+      ensureLogoutPlaceholderForAdmin();
+    }
   } else {
     lbtn.textContent = "🔒";
     lbtn.classList.remove("logged");
     removeAdminPlaceholder();
   }
 }
-function ensureAdminPlaceholder() {
+function ensureAdminPlaceholderForSuperadmin() {
   const ph = document.getElementById("adminAreaPlaceholder");
   ph.innerHTML = `
     <button id="openAdminPanel" class="admin-open-btn">لوحة الإدارة</button>
+    <button id="footerLogout" class="admin-logout-foot">تسجيل خروج</button>
   `;
   document.getElementById("openAdminPanel").addEventListener("click", openAdminPanel);
+  document.getElementById("footerLogout").addEventListener("click", () => {
+    if (!confirm("هل تريد تسجيل الخروج؟")) return;
+    logout();
+  });
+}
+function ensureLogoutPlaceholderForAdmin() {
+  const ph = document.getElementById("adminAreaPlaceholder");
+  ph.innerHTML = `
+    <button id="footerLogout" class="admin-logout-foot">تسجيل خروج</button>
+  `;
+  document.getElementById("footerLogout").addEventListener("click", () => {
+    if (!confirm("هل تريد تسجيل الخروج؟")) return;
+    logout();
+  });
 }
 function removeAdminPlaceholder() {
   const ph = document.getElementById("adminAreaPlaceholder");
@@ -121,7 +114,6 @@ function removeAdminPlaceholder() {
 }
 
 function openLoginModal() {
-  // if already logged in, open admin panel
   if (authToken) return openAdminPanel();
   const modal = document.getElementById("loginModal");
   modal.classList.remove("hidden");
@@ -148,9 +140,7 @@ async function onLoginSubmit(e) {
       body: JSON.stringify({ username, password })
     });
     const j = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return showLoginMsg(j.message || "فشل تسجيل الدخول.");
-    }
+    if (!res.ok) return showLoginMsg(j.message || "فشل تسجيل الدخول.");
     authToken = j.token;
     currentRole = j.role;
     currentUsername = j.username;
@@ -160,20 +150,16 @@ async function onLoginSubmit(e) {
     updateCornerUI();
     closeLoginModal();
     alert("تم تسجيل الدخول.");
-    // show admin features based on role
     if (currentRole === "superadmin") showSuperadminControls();
     else hideSuperadminControls();
-    // show upload forms for any admin role
     showAdminUploadForms();
-    fetchMe(); // refresh user info
+    fetchMe();
   } catch (err) {
     console.error("login error:", err);
     showLoginMsg("حدث خطأ أثناء الاتصال بالخادم.");
   }
 }
-function showLoginMsg(m) {
-  document.getElementById("loginMsg").textContent = m;
-}
+function showLoginMsg(m) { document.getElementById("loginMsg").textContent = m; }
 
 function logout() {
   authToken = null;
@@ -189,16 +175,11 @@ function logout() {
   alert("تم تسجيل الخروج.");
 }
 
-/* fetch /auth/me to confirm */
+/* fetch /auth/me */
 async function fetchMe() {
   try {
     const res = await fetch(`${BACKEND}/auth/me`, { headers: { "x-auth-token": authToken }});
-    if (!res.ok) {
-      // token invalid — logout
-      console.warn("token invalid, logging out");
-      logout();
-      return;
-    }
+    if (!res.ok) { console.warn("token invalid, logging out"); logout(); return; }
     const j = await res.json();
     currentRole = j.role;
     currentUsername = j.username;
@@ -208,16 +189,13 @@ async function fetchMe() {
     else hideSuperadminControls();
     showAdminUploadForms();
     updateCornerUI();
-  } catch (err) {
-    console.error("fetchMe:", err);
-  }
+  } catch (err) { console.error("fetchMe:", err); }
 }
 
-/* ===== Admin Panel (superadmin only parts) ===== */
+/* ===== Admin Panel (superadmin parts) ===== */
 function openAdminPanel() {
   document.getElementById("adminPanel").classList.remove("hidden");
   document.getElementById("adminPanel").setAttribute("aria-hidden", "false");
-  // fill UI based on role
   if (currentRole === "superadmin") {
     document.getElementById("superadminControls").style.display = "block";
     loadUsersList();
@@ -280,9 +258,7 @@ async function onCreateAdmin(e) {
 /* load users list (superadmin) */
 async function loadUsersList() {
   try {
-    const res = await fetch(`${BACKEND}/auth/users`, {
-      headers: { "x-auth-token": authToken }
-    });
+    const res = await fetch(`${BACKEND}/auth/users`, { headers: { "x-auth-token": authToken }});
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
       document.getElementById("usersList").innerHTML = `<div class="muted">غير متاح: ${j.message || res.status}</div>`;
@@ -372,7 +348,7 @@ function escapeHtml(unsafe) {
 }
 function escapeAttr(s) { return escapeHtml(s).replaceAll("\n", ""); }
 
-/* ===== Videos (unchanged) ===== */
+/* ===== Videos ===== */
 async function loadVideos() {
   const CHANNEL_ID = "UChFRy4s3_0MVJ3Hmw2AMcoQ";
   const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
@@ -468,234 +444,4 @@ async function onDeleteBook(e) {
       headers: { "x-auth-token": authToken || "" }
     });
     const j = await res.json().catch(()=>({}));
-    alert(j.message || (res.ok ? "تم الحذف" : "فشل"));
-    if (res.ok && j.ok) loadBooks();
-  } catch (err) {
-    console.error("onDeleteBook:", err);
-    alert("حدث خطأ أثناء الحذف.");
-  }
-}
-
-/* ===== Tips ===== */
-async function loadTips() {
-  const container = document.getElementById("tip-list");
-  container.innerHTML = `<p class="muted">جارٍ تحميل الإرشادات...</p>`;
-  try {
-    const res = await fetch(`${BACKEND}/tips`);
-    if (!res.ok) throw new Error("شبكة");
-    const json = await res.json();
-    const tips = json.ok ? json.data : [];
-    if (!Array.isArray(tips) || tips.length === 0) {
-      container.innerHTML = "<p class='muted'>لا توجد إرشادات بعد.</p>";
-      return;
-    }
-    const isAdmin = !!authToken;
-    container.innerHTML = tips.map(t => `
-      <div class="book" style="padding:12px;text-align:right;">
-        <p id="tip-text-${t.id}" style="white-space:pre-line;">${escapeHtml(t.text || t)}</p>
-        ${isAdmin ? `<div class="tip-controls"><button data-id="${t.id}" class="edit-tip">تعديل</button><button data-id="${t.id}" class="delete-tip">حذف</button></div>` : ""}
-      </div>
-    `).join("");
-    document.querySelectorAll(".edit-tip").forEach(btn => btn.addEventListener("click", onEditTip));
-    document.querySelectorAll(".delete-tip").forEach(btn => btn.addEventListener("click", onDeleteTip));
-  } catch (err) {
-    console.error("loadTips:", err);
-    container.innerHTML = "<p class='warn'>⚠️ تعذر تحميل الإرشادات.</p>";
-  }
-}
-async function onUploadTip(e) {
-  e.preventDefault();
-  if (!authToken) return alert("يجب تسجيل الدخول كمشرف أولاً.");
-  const text = e.target.text.value.trim();
-  if (!text) return alert("أدخل نصاً.");
-  try {
-    const res = await fetch(`${BACKEND}/tips`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-auth-token": authToken },
-      body: JSON.stringify({ text })
-    });
-    const j = await res.json().catch(()=>({}));
-    if (!res.ok) return alert(j.message || "فشل الإضافة.");
-    alert(j.message || "تمت الإضافة");
-    if (res.ok) {
-      e.target.reset();
-      loadTips();
-    }
-  } catch (err) {
-    console.error("onUploadTip:", err);
-    alert("فشل إرسال الإرشاد.");
-  }
-}
-async function onDeleteTip(e) {
-  const id = e.currentTarget.dataset.id;
-  if (!confirm("هل تريد حذف هذا الإرشاد؟")) return;
-  try {
-    const res = await fetch(`${BACKEND}/tips/${id}`, {
-      method: "DELETE",
-      headers: { "x-auth-token": authToken || "" }
-    });
-    const j = await res.json().catch(()=>({}));
-    alert(j.message || (res.ok ? "تم الحذف" : "فشل"));
-    if (res.ok && j.ok) loadTips();
-  } catch (err) {
-    console.error("onDeleteTip:", err);
-    alert("حدث خطأ أثناء الحذف.");
-  }
-}
-async function onEditTip(e) {
-  const id = e.currentTarget.dataset.id;
-  const currentEl = document.getElementById(`tip-text-${id}`);
-  const currentText = currentEl ? currentEl.textContent.trim() : "";
-  const newText = prompt("حرّر الإرشاد ثم اضغط موافق:", currentText);
-  if (newText === null) return;
-  if (newText.trim().length === 0) return alert("النص لا يمكن أن يكون فارغاً.");
-  try {
-    const res = await fetch(`${BACKEND}/tips/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "x-auth-token": authToken || "" },
-      body: JSON.stringify({ text: newText.trim() })
-    });
-    const j = await res.json().catch(()=>({}));
-    if (!res.ok) return alert(j.message || "فشل تعديل الإرشاد.");
-    if (currentEl) currentEl.textContent = newText.trim();
-    alert(j.message || "تم تعديل الإرشاد.");
-  } catch (err) {
-    console.error("onEditTip:", err);
-    alert("حدث خطأ أثناء التعديل.");
-  }
-}
-
-/* ===== Posts (المشاركات) ===== */
-async function loadPosts() {
-  const container = document.getElementById("post-list");
-  container.innerHTML = `<p class="muted">جارٍ تحميل المشاركات...</p>`;
-  try {
-    const res = await fetch(`${BACKEND}/posts`);
-    if (!res.ok) throw new Error("شبكة");
-    const json = await res.json();
-    const posts = json.ok ? json.data : [];
-    if (!Array.isArray(posts) || posts.length === 0) {
-      container.innerHTML = "<p class='muted'>لا توجد مشاركات بعد.</p>";
-      return;
-    }
-    const isAdmin = !!authToken;
-    container.innerHTML = posts.map(p => {
-      const safeTitle = escapeHtml(p.title || "بدون عنوان");
-      const safeDesc = escapeHtml(p.description || "");
-      const videoEmbed = p.videoUrl ? `<video controls src="${escapeAttr(p.videoUrl)}" style="width:100%;max-height:360px;border-radius:8px;" preload="metadata"></video>` : `<p class="muted">لا يوجد فيديو</p>`;
-      const controls = isAdmin ? `<div class="tip-controls"><button data-id="${p.id}" class="edit-post">تعديل</button><button data-id="${p.id}" class="delete-post">حذف</button></div>` : "";
-      return `
-        <div class="book" style="padding:12px;text-align:right;">
-          <h3 style="margin:0 0 8px 0;padding:0;color:var(--gold)">${safeTitle}</h3>
-          ${videoEmbed}
-          <p style="white-space:pre-line;margin-top:8px;">${safeDesc}</p>
-          ${controls}
-        </div>
-      `;
-    }).join("");
-    document.querySelectorAll(".edit-post").forEach(btn => btn.addEventListener("click", onEditPost));
-    document.querySelectorAll(".delete-post").forEach(btn => btn.addEventListener("click", onDeletePost));
-  } catch (err) {
-    console.error("loadPosts:", err);
-    container.innerHTML = "<p class='warn'>⚠️ تعذر تحميل المشاركات.</p>";
-  }
-}
-
-// رفع الملف إلى Cloudinary (client-side unsigned)
-async function uploadToCloudinary(file) {
-  if (!CLOUDINARY_CLOUD || !CLOUDINARY_PRESET) throw new Error("يرجى ضبط إعدادات Cloudinary في main.js");
-  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/upload`;
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("upload_preset", CLOUDINARY_PRESET);
-  const res = await fetch(url, { method: "POST", body: fd });
-  if (!res.ok) throw new Error("فشل رفع الملف إلى Cloudinary");
-  return res.json();
-}
-
-async function onUploadPost(e) {
-  e.preventDefault();
-  if (!authToken) return alert("يجب تسجيل الدخول كمشرف أولاً.");
-  const title = e.target.title.value.trim();
-  const description = e.target.description.value.trim();
-  const fileInput = e.target.videoFile;
-  if (!title || !fileInput || !fileInput.files || fileInput.files.length === 0) return alert("أكمل الحقول المطلوبة واختر فيديو.");
-  const file = fileInput.files[0];
-
-  try {
-    const upRes = await uploadToCloudinary(file);
-    const videoUrl = upRes.secure_url;
-    if (!videoUrl) throw new Error("لم نتحصل على رابط الفيديو من Cloudinary");
-
-    const res = await fetch(`${BACKEND}/posts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-auth-token": authToken },
-      body: JSON.stringify({ title, description, videoUrl })
-    });
-    const j = await res.json().catch(()=>({}));
-    if (!res.ok) {
-      alert(j.message || "فشل حفظ المشاركة على الخادم.");
-      return;
-    }
-    alert(j.message || "تمت إضافة المشاركة.");
-    e.target.reset();
-    loadPosts();
-  } catch (err) {
-    console.error("onUploadPost:", err);
-    alert("حدث خطأ أثناء رفع المشاركة: " + (err.message || err));
-  }
-}
-
-async function onDeletePost(e) {
-  const id = e.currentTarget.dataset.id;
-  if (!confirm("هل تريد حذف هذه المشاركة؟")) return;
-  try {
-    const res = await fetch(`${BACKEND}/posts/${id}`, {
-      method: "DELETE",
-      headers: { "x-auth-token": authToken || "" }
-    });
-    const j = await res.json().catch(()=>({}));
-    alert(j.message || (res.ok ? "تم الحذف" : "فشل"));
-    if (res.ok && j.ok) loadPosts();
-  } catch (err) {
-    console.error("onDeletePost:", err);
-    alert("حدث خطأ أثناء الحذف.");
-  }
-}
-
-async function onEditPost(e) {
-  const id = e.currentTarget.dataset.id;
-  const currentTitle = prompt("ادخل العنوان الجديد (اتركه فارغاً إن لم تغير):", "");
-  if (currentTitle === null) return;
-  const currentDesc = prompt("ادخل الوصف الجديد (اتركه فارغاً إن لم تغير):", "");
-  if (currentDesc === null) return;
-  const newVideoUrl = prompt("إذا أردت تغيير فيديو المشاركة: الصق رابط الفيديو الجديد (أو اتركه فارغاً):", "");
-  try {
-    const payload = {};
-    if ((currentTitle || "").trim().length) payload.title = currentTitle.trim();
-    if ((currentDesc || "").trim().length) payload.description = currentDesc.trim();
-    if ((newVideoUrl || "").trim().length) payload.videoUrl = newVideoUrl.trim();
-    if (Object.keys(payload).length === 0) return alert("لم تغيّر أي شيء.");
-    const res = await fetch(`${BACKEND}/posts/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "x-auth-token": authToken || "" },
-      body: JSON.stringify(payload)
-    });
-    const j = await res.json().catch(()=>({}));
-    if (!res.ok) return alert(j.message || "فشل تعديل المشاركة.");
-    alert(j.message || "تم تعديل المشاركة.");
-    loadPosts();
-  } catch (err) {
-    console.error("onEditPost:", err);
-    alert("حدث خطأ أثناء التعديل.");
-  }
-}
-
-/* ===== UI pages ===== */
-function showPage(id) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("visible"));
-  const page = document.getElementById(id);
-  if (page) page.classList.add("visible");
-  const backBtn = document.getElementById("backBtn");
-  backBtn.style.display = id === "videosPage" ? "none" : "block";
-}
+    alert(j.message || (res.ok ? "تم الحذف" : "فشل")
