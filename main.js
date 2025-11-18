@@ -213,35 +213,88 @@ function escapeHtml(unsafe) {
 }
 function escapeAttr(s){ return escapeHtml(s).replaceAll("\n",""); }
 
-/* ================= Videos (rss) ================= */
+/* ================= Videos (rss) - Enhanced: try rss2json then fallback to /youtube-feed proxy ================= */
 async function loadVideos() {
   const CHANNEL_ID = "UChFRy4s3_0MVJ3Hmw2AMcoQ";
   const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
+  const RSS2JSON = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`;
+
   const container = document.getElementById("videos");
   if (!container) return;
   container.innerHTML = `<p style="color:#aaa">جارٍ تحميل الفيديوهات...</p>`;
-  try {
-    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`);
-    if (!res.ok) throw new Error("فشل جلب الخلاصة");
-    const data = await res.json();
-    const items = (data.items || []).slice(0, 50);
-    if (items.length === 0) { container.innerHTML = "<p style='color:#aaa'>لا توجد فيديوهات حالياً.</p>"; return; }
+
+  function showError(msg) {
+    container.innerHTML = `<p style="color:#faa">⚠️ ${escapeHtml(msg)}</p>
+      <p style="color:#aaa">يمكنك فتح القناة يدوياً: <a href="https://www.youtube.com/channel/${CHANNEL_ID}" target="_blank" rel="noopener noreferrer">افتح القناة</a></p>`;
+  }
+
+  function renderItems(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      container.innerHTML = "<p style='color:#aaa'>لا توجد فيديوهات حالياً.</p>";
+      return;
+    }
     container.innerHTML = items.map(v => {
-      const id = extractYouTubeID(v.link) || extractYouTubeID(v.guid) || "";
+      const link = v.link || v.guid || "";
+      const id = extractYouTubeID(link) || extractYouTubeID(v.enclosure && v.enclosure.link) || "";
       const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
+      const title = v.title || (v["media:group"] && v["media:group"]["media:title"]) || "بدون عنوان";
       return `
         <div class="video">
           <a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener noreferrer">
             ${thumb ? `<img src="${thumb}" width="340" height="200" loading="lazy">` : ""}
           </a>
-          <p>${escapeHtml(v.title)}</p>
+          <p>${escapeHtml(title)}</p>
         </div>`;
     }).join("");
+  }
+
+  // 1) try rss2json
+  try {
+    const res = await fetch(RSS2JSON, { cache: "no-store" });
+    if (res.ok) {
+      const json = await res.json().catch(()=>null);
+      if (json && Array.isArray(json.items)) {
+        renderItems(json.items.slice(0,50));
+        return;
+      }
+    } else {
+      console.warn("rss2json failed status:", res.status);
+    }
   } catch (err) {
-    console.error("loadVideos:", err);
-    container.innerHTML = "<p style='color:#faa'>⚠️ تعذر تحميل الفيديوهات — تحقق من الاتصال.</p>";
+    console.warn("rss2json error:", err);
+  }
+
+  // 2) fallback to server proxy /youtube-feed
+  try {
+    const proxyUrl = `${BACKEND.replace(/\/$/,'')}/youtube-feed?channelId=${encodeURIComponent(CHANNEL_ID)}`;
+    const proxyRes = await fetch(proxyUrl);
+    if (!proxyRes.ok) {
+      showError("تعذر جلب الخلاصة من الخادم الوسيط. حاول إعادة المحاولة لاحقاً.");
+      return;
+    }
+    const xmlText = await proxyRes.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, "application/xml");
+    const entries = Array.from(doc.querySelectorAll("entry"));
+    if (entries.length === 0) {
+      showError("لم نتمكن من استخراج الفيديوهات من خلاصة يوتيوب.");
+      return;
+    }
+    const items = entries.map(en => {
+      const title = en.querySelector("title")?.textContent || "";
+      const linkEl = en.querySelector("link[rel='alternate']");
+      const link = linkEl ? linkEl.getAttribute("href") : (en.querySelector("link")?.textContent || "");
+      return { title, link };
+    });
+    renderItems(items);
+    return;
+  } catch (err) {
+    console.error("fallback youtube-feed error:", err);
+    showError("حدث خطأ أثناء محاولة جلب الفيديوهات (راجع Console).");
+    return;
   }
 }
+
 function extractYouTubeID(url) {
   if (!url) return null;
   const patterns = [/v=([a-zA-Z0-9_-]{11})/, /\/embed\/([a-zA-Z0-9_-]{11})/, /youtu\.be\/([a-zA-Z0-9_-]{11})/, /\/watch\/([a-zA-Z0-9_-]{11})/];
