@@ -10,7 +10,7 @@
     /* === الأنماط الأساسية === */
     :root {
       --bg-dark: #050505;
-      --panel-dark: rgba(20, 20, 20, 0.7); /* شفافية للتأثير الزجاجي */
+      --panel-dark: rgba(20, 20, 20, 0.7);
       --panel-hover: #1a1a1a;
       --gold: #d4af37;
       --gold-dim: #a68a2d;
@@ -46,7 +46,7 @@
     input:focus, textarea:focus { border-color: var(--gold); }
 
     /* === الإشعارات (Toast) === */
-    #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 20000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none; }
+    #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 30000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none; }
     .toast {
       background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(5px); border-right: 4px solid var(--gold); color: #fff;
       padding: 15px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
@@ -68,7 +68,7 @@
     /* === التنقل === */
     .navbar {
       position: sticky; top: 0; z-index: 1000; 
-      background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(12px); /* زجاجي */
+      background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(255,255,255,0.05); padding: 10px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
     }
     .nav-btn {
@@ -94,7 +94,8 @@
     .upload-box { background: rgba(20,20,20,0.6); border: 1px dashed #444; padding: 20px; border-radius: 12px; margin-bottom: 30px; text-align: center; max-width: 600px; margin-inline: auto; }
     
     /* === النوافذ المنبثقة === */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; }
+    /* z-index هنا 20000 ليكون أعلى من شاشة الصيانة */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 20000; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; }
     .modal-overlay.active { visibility: visible; opacity: 1; }
     .modal-box { 
       background: rgba(26, 26, 26, 0.95); backdrop-filter: blur(10px);
@@ -109,9 +110,9 @@
       transition: 0.3s;
     }
     #admin-toggle { top: 15px; }
-    #maint-toggle { top: 65px; border-color: var(--danger); color: var(--danger); display: none; } /* يظهر للمشرف فقط */
+    #maint-toggle { top: 65px; border-color: var(--danger); color: var(--danger); display: none; }
     
-    /* شاشة الصيانة */
+    /* شاشة الصيانة: z-index 15000 (أقل من المودال وأعلى من الموقع) */
     #maintenance-overlay {
       position: fixed; inset: 0; background: #080808; z-index: 15000;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -237,7 +238,7 @@
 
   <script>
     const CONFIG = {
-      // استبدل هذا الرابط برابط سيرفرك الجديد على Render
+      // رابط سيرفرك الذي يعمل حالياً
       BACKEND: "https://mosa-backend-dr63.onrender.com", 
       CLOUDINARY: { CLOUD_NAME: "dkdnq0zj3", PRESET: "unsigned_posts_preset" },
       YOUTUBE: "UChFRy4s3_0MVJ3Hmw2AMcoQ"
@@ -248,7 +249,7 @@
 
     // --- عند بدء التشغيل ---
     (async function init() {
-      await checkMaintenance(); // فحص الصيانة أولاً
+      await checkMaintenance();
       loadContent();
     })();
 
@@ -263,14 +264,13 @@
         const welcomeOverlay = document.getElementById("welcome-overlay");
 
         if (isMaintenance) {
-          // الصيانة مفعلة: أظهر شاشة الصيانة، وأخف الترحيب
+          // إذا الموقع في صيانة: أظهر شاشة الصيانة، وأخف الترحيب
           maintOverlay.style.display = "flex";
           welcomeOverlay.style.display = "none";
           welcomeOverlay.classList.remove('active');
         } else {
-          // الصيانة غير مفعلة
+          // الوضع الطبيعي
           maintOverlay.style.display = "none";
-          // الترحيب يظهر تلقائياً عبر HTML class active
         }
       } catch (e) { console.error("Error fetching maintenance status"); }
     }
@@ -289,13 +289,13 @@
         const res = await api('/config/maintenance', 'POST', { status: newState });
         showToast(res.message);
         isMaintenance = newState;
-        updateUI(); // لتحديث لون الزر
+        updateUI(); 
       } catch (e) {}
     }
 
     // الدخول الإجباري للمشرف أثناء الصيانة
     document.getElementById("force-enter-btn").onclick = () => {
-      document.getElementById("maintenance-overlay").style.display = "none";
+      // نفتح نافذة الدخول فوق شاشة الصيانة
       toggleModal('login-modal', true);
     };
 
@@ -334,7 +334,7 @@
       loadPosts();
     }
 
-    // --- تحميل البيانات (نفس الدوال السابقة) ---
+    // --- تحميل البيانات ---
     async function loadVideos() {
       const container = document.getElementById("videos-grid");
       try {
@@ -433,13 +433,17 @@
       if (u !== "sayafbadarin") return showToast("اسم المستخدم خطأ", "error");
       
       try {
-        await api('/books', 'GET'); // اختبار الاتصال
+        await api('/books', 'GET'); 
         state.adminPass = p;
         sessionStorage.setItem("adminPass", p);
         
         checkAdmin();
         toggleModal('login-modal', false);
         showToast("تم الدخول بنجاح");
+        
+        // عند نجاح الدخول، نخفي شاشة الصيانة يدوياً للمشرف
+        document.getElementById("maintenance-overlay").style.display = "none";
+
         loadContent(); 
       } catch(e) {
         showToast("فشل الدخول (تحقق من كلمة المرور)", "error");
@@ -512,7 +516,6 @@
       btn.innerText = "رفع ونشر"; btn.disabled = false;
     };
     
-    // تنقل الصفحات
     window.switchPage = (id, btn) => {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
       document.getElementById(id+'-page').classList.add('visible');
@@ -523,6 +526,11 @@
     window.changePass = async () => {
       const n = prompt("كلمة المرور الجديدة (أكثر من 4 حروف):");
       if(n) { await api('/admin/change-password', 'POST', {newPassword:n}); showToast("تم التغيير"); }
+    };
+
+    window.editTip = async (id, txt) => {
+      const n = prompt("تعديل:", txt);
+      if(n && n!==txt) { await api(`/tips/${id}`, 'PUT', {text:n}); showToast("تم"); loadTips(); }
     };
   </script>
 </body>
