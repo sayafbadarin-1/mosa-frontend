@@ -9,26 +9,24 @@
 </head>
 <body>
 
-  <!-- شاشة البداية -->
-  <div id="overlay">
-    <div class="popup">
-      <h2>صلِّ على النبي ﷺ</h2>
-      <p>قبل أن تتصفح الموقع، صلِّ وسلم على خير الأنام.</p>
-      <button id="enterBtn" onclick="onEnter()">اللهم صلِّ وسلم عليه</button>
-    </div>
+  <div id="maintenanceOverlay" style="display:none;">
+    <div style="font-size:4rem;">🛠️</div>
+    <h1 style="color:#e74c3c;">الموقع قيد الصيانة</h1>
+    <p style="color:#aaa; margin:15px 0;">نقوم ببعض التحسينات حالياً.. سنعود قريباً.</p>
+    <button id="forceEnter" style="background:#333; font-size:0.8rem; margin-top:30px;">دخول المشرف</button>
   </div>
 
-  <!-- زر تسجيل الدخول الصغير جداً في الزاوية (نقلناه لليمين) -->
-  <div id="cornerControls">
-    <button id="cornerLogin" class="corner-btn" title="تسجيل دخول المشرف">🔒</button>
+  <div id="overlay">
+    <h2 style="color:#d4af37;">صلِّ على الحبيب المصطفى ﷺ</h2>
+    <p style="color:#ccc; margin-bottom:20px;">اللهم صلِّ وسلم وبارك على سيدنا محمد</p>
+    <button onclick="enterSite()">اللهم صلِّ وسلم عليه</button>
   </div>
 
   <header class="hero">
-    <div class="overlay-hero"></div>
     <div class="hero-content">
       <img src="https://yt3.googleusercontent.com/co-iJ8X1CeyQWoeqU8TspcCyVNY_pPLZTP_LHpEPi73b39Pql8nAXpObTgl1Qs2Cle6IorGSyA=s160-c-k-c0x00ffffff-no-rj" class="logo" />
       <h1>الشيخ موسى أحمد الخلايلة</h1>
-      <p>منبر علم وخير 🌙</p>
+      <p style="color:#ccc;">منبر علم وخير 🌙</p>
     </div>
   </header>
 
@@ -37,99 +35,56 @@
     <a data-section="booksPage">📚 المكتبة</a>
     <a data-section="tipsPage">🌿 إرشادات</a>
     <a data-section="postsPage">✍️ المشاركات</a>
+    <button id="cornerLogin" class="nav-icon" title="دخول المشرف">🔒</button>
+    <button id="maintToggleBtn" class="nav-icon" style="display:none; border-color:#e74c3c; color:#e74c3c;" title="وضع الصيانة">🛠️</button>
   </nav>
 
-  <button id="backBtn" class="back-btn" style="display:none;">⬅ رجوع</button>
-
   <main>
-    <!-- الفيديوهات -->
     <section id="videosPage" class="page visible">
-      <h2>📺 الفيديوهات</h2>
-      <div id="videos" class="videos-grid"></div>
+      <div id="videos" class="grid"></div>
     </section>
 
-    <!-- المكتبة -->
     <section id="booksPage" class="page">
-      <h2>📚 المكتبة</h2>
-      <form id="upload-book" class="upload-box" style="display:none;">
+      <form id="upload-book" style="display:none;" class="card-content">
         <input type="text" name="title" placeholder="اسم الكتاب" required />
-        <input type="url" name="url" placeholder="رابط الكتاب من Google Drive" required />
-        <button type="submit">إضافة الكتاب</button>
+        <input type="url" name="url" placeholder="رابط الكتاب" required />
+        <button type="submit">إضافة</button>
       </form>
-      <div id="book-list" class="books-grid"></div>
+      <div id="book-list" class="grid"></div>
     </section>
 
-    <!-- الإرشادات -->
     <section id="tipsPage" class="page">
-      <h2>🌿 إرشادات</h2>
-      <form id="upload-tip" class="upload-box" style="display:none;">
-        <textarea name="text" placeholder="أدخل النص هنا..." rows="4" required></textarea>
-        <button type="submit">إضافة الإرشاد</button>
+      <form id="upload-tip" style="display:none;" class="card-content">
+        <textarea name="text" placeholder="اكتب الإرشاد..." required></textarea>
+        <button type="submit">نشر</button>
       </form>
-      <div id="tip-list" class="books-grid"></div>
+      <div id="tip-list" class="grid"></div>
     </section>
 
-    <!-- المشاركات -->
     <section id="postsPage" class="page">
-      <h2>✍️ المشاركات</h2>
-      <form id="upload-post" class="upload-box" style="display:none;">
-        <input type="text" name="title" placeholder="عنوان المشاركة" required />
-        <textarea name="description" placeholder="وصف المشاركة..." rows="3"></textarea>
+      <form id="upload-post" style="display:none;" class="card-content">
+        <input type="text" name="title" placeholder="العنوان" required />
+        <textarea name="description" placeholder="الوصف"></textarea>
         <input type="file" name="videoFile" accept="video/*" />
-        <p style="font-size:0.9em;color:#bbb">إذا لم ترفع فيديو يمكنك لصق رابط الفيديو عند الطلب.</p>
-        <button type="submit">نشر المشاركة</button>
+        <button type="submit">نشر</button>
       </form>
-      <div id="post-list" class="books-grid"></div>
+      <div id="post-list" class="grid"></div>
     </section>
   </main>
 
-  <footer>
-    <div class="channels">
-      <span>القنوات:</span>
-      <a id="tgBtn" class="channel-btn" target="_blank" rel="noopener noreferrer">قناة التلجرام</a>
-      <a id="waBtn" class="channel-btn" target="_blank" rel="noopener noreferrer">جروب الواتساب</a>
-    </div>
-
-    <div id="adminAreaPlaceholder" class="admin-area-placeholder"></div>
-
-    <p>© 2025 / 1447 هـ – موقع الشيخ موسى أحمد الخلايلة</p>
-  </footer>
-
-  <!-- نافذة تسجيل الدخول (اسم المستخدم حقل فارغ بدون أي تلميح) -->
-  <div id="loginModal" class="modal hidden" aria-hidden="true">
-    <div class="modal-card">
+  <div id="loginModal" class="modal hidden">
+    <div class="modal-box">
       <h3>تسجيل دخول المشرف</h3>
       <form id="loginForm">
-        <input type="text" name="username" required />
+        <input type="text" name="username" placeholder="اسم المستخدم" required />
         <input type="password" name="password" placeholder="كلمة المرور" required />
-        <div style="margin-top:10px">
-          <button type="submit">دخول</button>
-          <button type="button" id="loginCancel">إلغاء</button>
-        </div>
+        <button type="submit">دخول</button>
+        <button type="button" onclick="closeModal()" style="background:#333;">إلغاء</button>
       </form>
-      <p id="loginMsg" style="color:#f66;margin-top:8px;"></p>
     </div>
   </div>
 
-  <!-- لوحة المشرف (تظهر فقط للمشرف الرئيسي sayafbadarin) -->
-  <div id="adminPanel" class="admin-panel hidden" aria-hidden="true">
-    <div class="admin-card">
-      <h4>لوحة الإدارة</h4>
-
-      <h5>تغيير كلمة المرور العالمية (الخادم)</h5>
-      <form id="changeGlobalPassForm">
-        <input name="currentPassword" type="password" placeholder="كلمة المرور الحالية" required />
-        <input name="newPassword" type="password" placeholder="كلمة المرور الجديدة" required />
-        <button type="submit">تغيير على الخادم</button>
-      </form>
-
-      <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">
-        <button id="panelLogout" class="inline-logout">تسجيل خروج</button>
-        <button id="closeAdminPanel" class="close-admin">إغلاق</button>
-      </div>
-    </div>
-  </div>
-
+  <div id="toasts"></div>
   <script src="main.js"></script>
 </body>
 </html>
