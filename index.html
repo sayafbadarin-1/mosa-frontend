@@ -2,89 +2,528 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>الشيخ موسى أحمد الخلايلة</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;800&display=swap" rel="stylesheet" />
+  
+  <style>
+    /* === الأنماط الأساسية === */
+    :root {
+      --bg-dark: #050505;
+      --panel-dark: rgba(20, 20, 20, 0.7); /* شفافية للتأثير الزجاجي */
+      --panel-hover: #1a1a1a;
+      --gold: #d4af37;
+      --gold-dim: #a68a2d;
+      --gold-glow: rgba(212, 175, 55, 0.3);
+      --text: #ffffff;
+      --danger: #ff4d4d;
+      --success: #2ecc71;
+    }
+    * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: "Cairo", sans-serif; margin: 0; background: var(--bg-dark);
+      color: var(--text); overflow-x: hidden; line-height: 1.6;
+      background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, var(--bg-dark) 80%);
+    }
+    
+    /* === التحركات === */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0% { background: #1a1a1a; } 50% { background: #252525; } 100% { background: #1a1a1a; } }
+    
+    /* === المكونات === */
+    .btn {
+      background: linear-gradient(45deg, var(--gold), #b89326); color: #000; border: none; padding: 10px 20px;
+      border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 0 15px var(--gold-glow); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #d63030; }
+    
+    input, textarea {
+      width: 100%; background: rgba(30, 30, 30, 0.8); border: 1px solid #333; padding: 12px;
+      border-radius: 8px; color: #fff; margin-bottom: 10px; font-family: inherit;
+    }
+    input:focus, textarea:focus { border-color: var(--gold); }
+
+    /* === الإشعارات (Toast) === */
+    #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 20000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none; }
+    .toast {
+      background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(5px); border-right: 4px solid var(--gold); color: #fff;
+      padding: 15px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s forwards; pointer-events: auto; text-align: right; border-left: none;
+    }
+    .toast.success { border-color: var(--success); } .toast.error { border-color: var(--danger); }
+
+    /* === الهيدر === */
+    .hero {
+      height: 35vh; min-height: 280px; text-align: center; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; position: relative;
+      background: url("https://yt3.googleusercontent.com/VLV8GQTdrlLUeXvglIV6OS7YXYfyY3CfyfK3TOt5gIeUyKiXigdFFXYtR1WLaCAaL4xzDUIuYA=w1707-fcrop64=1,00005a57ffffa5a8-k-c0xffffffff-no-nd-rj") center/cover no-repeat fixed;
+    }
+    .hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(5,5,5,0.4), var(--bg-dark)); }
+    .hero-content { position: relative; z-index: 10; animation: fadeIn 0.8s; }
+    .logo { width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--gold); box-shadow: 0 0 20px var(--gold-glow); margin-bottom: 10px; }
+    .hero h1 { color: var(--gold); font-size: 2.2rem; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+
+    /* === التنقل === */
+    .navbar {
+      position: sticky; top: 0; z-index: 1000; 
+      background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(12px); /* زجاجي */
+      border-bottom: 1px solid rgba(255,255,255,0.05); padding: 10px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+    }
+    .nav-btn {
+      background: transparent; color: #bbb; border: none; padding: 8px 15px;
+      font-weight: 600; cursor: pointer; border-radius: 20px; transition: 0.3s;
+    }
+    .nav-btn.active, .nav-btn:hover { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+
+    /* === المحتوى === */
+    main { padding: 20px; max-width: 1200px; margin: 0 auto; min-height: 50vh; }
+    .page { display: none; animation: fadeIn 0.4s; } .page.visible { display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    
+    .card { 
+      background: var(--panel-dark); backdrop-filter: blur(5px);
+      border: 1px solid #222; border-radius: 12px; overflow: hidden; transition: 0.3s; 
+    }
+    .card:hover { transform: translateY(-5px); border-color: var(--gold-dim); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .card-content { padding: 15px; }
+    .card-title { font-size: 1.1rem; margin: 0 0 10px; font-weight: 600; color: #eee; }
+    .video-thumb { width: 100%; height: 180px; object-fit: cover; }
+
+    .upload-box { background: rgba(20,20,20,0.6); border: 1px dashed #444; padding: 20px; border-radius: 12px; margin-bottom: 30px; text-align: center; max-width: 600px; margin-inline: auto; }
+    
+    /* === النوافذ المنبثقة === */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; }
+    .modal-overlay.active { visibility: visible; opacity: 1; }
+    .modal-box { 
+      background: rgba(26, 26, 26, 0.95); backdrop-filter: blur(10px);
+      padding: 30px; border-radius: 15px; width: 90%; max-width: 400px; border: 1px solid var(--gold); text-align: center; 
+    }
+
+    /* أزرار الإدارة العائمة */
+    .admin-float-btn {
+      position: fixed; right: 15px; width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2000;
+      border: 1px solid var(--gold); background: rgba(0,0,0,0.6); color: var(--gold); backdrop-filter: blur(4px);
+      transition: 0.3s;
+    }
+    #admin-toggle { top: 15px; }
+    #maint-toggle { top: 65px; border-color: var(--danger); color: var(--danger); display: none; } /* يظهر للمشرف فقط */
+    
+    /* شاشة الصيانة */
+    #maintenance-overlay {
+      position: fixed; inset: 0; background: #080808; z-index: 15000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 20px;
+    }
+
+    footer { text-align: center; padding: 40px; border-top: 1px solid #222; color: #666; margin-top: 50px; }
+    .social-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #222; color: #fff; text-decoration: none; border-radius: 20px; margin: 5px; }
+    .social-btn.tg { color: #0088cc; } .social-btn.wa { color: #25d366; }
+    
+    .skeleton { background: #222; height: 200px; border-radius: 12px; animation: pulse 1.5s infinite; }
+  </style>
 </head>
 <body>
 
-  <div id="maintenanceOverlay" style="display:none;">
-    <div style="font-size:4rem;">🛠️</div>
-    <h1 style="color:#e74c3c;">الموقع قيد الصيانة</h1>
-    <p style="color:#aaa; margin:15px 0;">نقوم ببعض التحسينات حالياً.. سنعود قريباً.</p>
-    <button id="forceEnter" style="background:#333; font-size:0.8rem; margin-top:30px;">دخول المشرف</button>
+  <div id="toast-container"></div>
+
+  <div id="maintenance-overlay" style="display: none;">
+    <div style="font-size: 4rem; margin-bottom: 20px;">🛠️</div>
+    <h1 style="color: var(--danger); margin: 0 0 10px;">الموقع قيد الصيانة</h1>
+    <p style="color: #aaa; font-size: 1.1rem; max-width: 500px; margin: 0 auto;">
+      نقوم حالياً بإجراء بعض التحسينات والتحديثات. سنعود قريباً جداً.
+    </p>
+    <button id="force-enter-btn" style="margin-top: 30px; background: #222; color: #666; border: 1px solid #333; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+      دخول المشرف
+    </button>
   </div>
 
-  <div id="overlay">
-    <h2 style="color:#d4af37;">صلِّ على الحبيب المصطفى ﷺ</h2>
-    <p style="color:#ccc; margin-bottom:20px;">اللهم صلِّ وسلم وبارك على سيدنا محمد</p>
-    <button onclick="enterSite()">اللهم صلِّ وسلم عليه</button>
+  <div id="welcome-overlay" class="modal-overlay active">
+    <div class="modal-box">
+      <h3 style="color:#fff">أهلاً بكم في موقع الشيخ</h3>
+      <h1 style="color:var(--gold)">موسى أحمد الخلايلة</h1>
+      <p style="color:#aaa">صلِّ على الحبيب المصطفى ﷺ</p>
+      <button class="btn" onclick="enterSite()">اللهم صلِّ وسلم عليه (دخول)</button>
+    </div>
   </div>
+
+  <div id="login-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="color:var(--gold)">منطقة المشرف</h3>
+      <form id="login-form">
+        <input type="text" id="username" placeholder="اسم المستخدم" required>
+        <input type="password" id="password" placeholder="كلمة المرور" required>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <button type="submit" class="btn" style="flex:1">دخول</button>
+          <button type="button" class="btn btn-danger" onclick="toggleModal('login-modal', false)">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <button id="admin-toggle" class="admin-float-btn" onclick="handleAdminClick()" title="الإدارة">⚙️</button>
+  <button id="maint-toggle" class="admin-float-btn" onclick="toggleMaintenance()" title="تغيير وضع الصيانة">🛠️</button>
 
   <header class="hero">
     <div class="hero-content">
-      <img src="https://yt3.googleusercontent.com/co-iJ8X1CeyQWoeqU8TspcCyVNY_pPLZTP_LHpEPi73b39Pql8nAXpObTgl1Qs2Cle6IorGSyA=s160-c-k-c0x00ffffff-no-rj" class="logo" />
+      <img src="https://yt3.googleusercontent.com/co-iJ8X1CeyQWoeqU8TspcCyVNY_pPLZTP_LHpEPi73b39Pql8nAXpObTgl1Qs2Cle6IorGSyA=s160-c-k-c0x00ffffff-no-rj" class="logo">
       <h1>الشيخ موسى أحمد الخلايلة</h1>
-      <p style="color:#ccc;">منبر علم وخير 🌙</p>
+      <p>منبر علم وخير ونور 🌙</p>
     </div>
   </header>
 
   <nav class="navbar">
-    <a data-section="videosPage">📺 الفيديوهات</a>
-    <a data-section="booksPage">📚 المكتبة</a>
-    <a data-section="tipsPage">🌿 إرشادات</a>
-    <a data-section="postsPage">✍️ المشاركات</a>
-    <button id="cornerLogin" class="nav-icon" title="دخول المشرف">🔒</button>
-    <button id="maintToggleBtn" class="nav-icon" style="display:none; border-color:#e74c3c; color:#e74c3c;" title="وضع الصيانة">🛠️</button>
+    <button class="nav-btn active" onclick="switchPage('videos', this)">📺 الفيديوهات</button>
+    <button class="nav-btn" onclick="switchPage('books', this)">📚 المكتبة</button>
+    <button class="nav-btn" onclick="switchPage('tips', this)">🌿 إرشادات</button>
+    <button class="nav-btn" onclick="switchPage('posts', this)">✍️ المشاركات</button>
   </nav>
 
   <main>
-    <section id="videosPage" class="page visible">
-      <div id="videos" class="grid"></div>
+    <section id="videos-page" class="page visible">
+      <div style="text-align:center; margin-bottom:20px; color:var(--gold)">أحدث المرئيات من القناة</div>
+      <div id="videos-grid" class="grid">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
     </section>
 
-    <section id="booksPage" class="page">
-      <form id="upload-book" style="display:none;" class="card-content">
-        <input type="text" name="title" placeholder="اسم الكتاب" required />
-        <input type="url" name="url" placeholder="رابط الكتاب" required />
-        <button type="submit">إضافة</button>
+    <section id="books-page" class="page">
+      <form id="book-form" class="upload-box" style="display: none;">
+        <h4 style="color:var(--gold); margin-top:0">إضافة كتاب جديد</h4>
+        <input type="text" name="title" placeholder="عنوان الكتاب" required>
+        <input type="url" name="url" placeholder="رابط Google Drive" required>
+        <button type="submit" class="btn">نشر الكتاب</button>
       </form>
-      <div id="book-list" class="grid"></div>
+      <div id="books-grid" class="grid"></div>
     </section>
 
-    <section id="tipsPage" class="page">
-      <form id="upload-tip" style="display:none;" class="card-content">
-        <textarea name="text" placeholder="اكتب الإرشاد..." required></textarea>
-        <button type="submit">نشر</button>
+    <section id="tips-page" class="page">
+      <form id="tip-form" class="upload-box" style="display: none;">
+        <h4 style="color:var(--gold); margin-top:0">إضافة إرشاد جديد</h4>
+        <textarea name="text" rows="3" placeholder="اكتب النص هنا..." required></textarea>
+        <button type="submit" class="btn">نشر الإرشاد</button>
       </form>
-      <div id="tip-list" class="grid"></div>
+      <div id="tips-grid" class="grid"></div>
     </section>
 
-    <section id="postsPage" class="page">
-      <form id="upload-post" style="display:none;" class="card-content">
-        <input type="text" name="title" placeholder="العنوان" required />
-        <textarea name="description" placeholder="الوصف"></textarea>
-        <input type="file" name="videoFile" accept="video/*" />
-        <button type="submit">نشر</button>
+    <section id="posts-page" class="page">
+      <form id="post-form" class="upload-box" style="display: none;">
+        <h4 style="color:var(--gold); margin-top:0">إضافة مشاركة جديدة</h4>
+        <input type="text" name="title" placeholder="العنوان" required>
+        <textarea name="description" rows="2" placeholder="الوصف..."></textarea>
+        <div style="background:#222; padding:10px; border-radius:8px; margin-bottom:10px; text-align:right">
+          <label style="font-size:0.9rem; color:#aaa">فيديو (اختياري):</label>
+          <input type="file" name="videoFile" accept="video/*" style="margin-top:5px">
+        </div>
+        <button type="submit" class="btn">رفع ونشر</button>
       </form>
-      <div id="post-list" class="grid"></div>
+      <div id="posts-grid" class="grid"></div>
     </section>
   </main>
 
-  <div id="loginModal" class="modal hidden">
-    <div class="modal-box">
-      <h3>تسجيل دخول المشرف</h3>
-      <form id="loginForm">
-        <input type="text" name="username" placeholder="اسم المستخدم" required />
-        <input type="password" name="password" placeholder="كلمة المرور" required />
-        <button type="submit">دخول</button>
-        <button type="button" onclick="closeModal()" style="background:#333;">إلغاء</button>
-      </form>
+  <footer>
+    <div style="margin-bottom: 20px;">
+      <a href="https://t.me/musaahmadkh" target="_blank" class="social-btn tg">قناة التيليجرام</a>
+      <a href="https://chat.whatsapp.com/JaAji0WfEat8dVI1CPB4c1" target="_blank" class="social-btn wa">مجموعة الواتساب</a>
     </div>
-  </div>
+    <div id="admin-actions" style="display: none;">
+      <button class="btn btn-danger" onclick="logout()">تسجيل خروج المشرف</button>
+      <button class="btn" onclick="changePass()">تغيير كلمة المرور</button>
+    </div>
+    <p>© 2025 موقع الشيخ موسى أحمد الخلايلة</p>
+  </footer>
 
-  <div id="toasts"></div>
-  <script src="main.js"></script>
+  <script>
+    const CONFIG = {
+      // استبدل هذا الرابط برابط سيرفرك الجديد على Render
+      BACKEND: "https://mosa-backend-dr63.onrender.com", 
+      CLOUDINARY: { CLOUD_NAME: "dkdnq0zj3", PRESET: "unsigned_posts_preset" },
+      YOUTUBE: "UChFRy4s3_0MVJ3Hmw2AMcoQ"
+    };
+
+    let state = { adminPass: sessionStorage.getItem("adminPass") };
+    let isMaintenance = false;
+
+    // --- عند بدء التشغيل ---
+    (async function init() {
+      await checkMaintenance(); // فحص الصيانة أولاً
+      loadContent();
+    })();
+
+    // --- منطق الصيانة والترحيب ---
+    async function checkMaintenance() {
+      try {
+        const res = await fetch(`${CONFIG.BACKEND}/config/status`);
+        const data = await res.json();
+        isMaintenance = data.maintenance;
+
+        const maintOverlay = document.getElementById("maintenance-overlay");
+        const welcomeOverlay = document.getElementById("welcome-overlay");
+
+        if (isMaintenance) {
+          // الصيانة مفعلة: أظهر شاشة الصيانة، وأخف الترحيب
+          maintOverlay.style.display = "flex";
+          welcomeOverlay.style.display = "none";
+          welcomeOverlay.classList.remove('active');
+        } else {
+          // الصيانة غير مفعلة
+          maintOverlay.style.display = "none";
+          // الترحيب يظهر تلقائياً عبر HTML class active
+        }
+      } catch (e) { console.error("Error fetching maintenance status"); }
+    }
+
+    // زر التحكم بالصيانة (للمشرف)
+    async function toggleMaintenance() {
+      if(!state.adminPass) return;
+      const newState = !isMaintenance;
+      const msg = newState ? 
+        "تفعيل وضع الصيانة؟ (سيتم إغلاق الموقع أمام الزوار)" : 
+        "إلغاء وضع الصيانة وفتح الموقع؟";
+      
+      if(!confirm(msg)) return;
+
+      try {
+        const res = await api('/config/maintenance', 'POST', { status: newState });
+        showToast(res.message);
+        isMaintenance = newState;
+        updateUI(); // لتحديث لون الزر
+      } catch (e) {}
+    }
+
+    // الدخول الإجباري للمشرف أثناء الصيانة
+    document.getElementById("force-enter-btn").onclick = () => {
+      document.getElementById("maintenance-overlay").style.display = "none";
+      toggleModal('login-modal', true);
+    };
+
+    // --- الدوال الأساسية ---
+    function enterSite() {
+      document.getElementById('welcome-overlay').classList.remove('active');
+    }
+
+    function showToast(msg, type='success') {
+      const box = document.createElement('div');
+      box.className = `toast ${type}`;
+      box.innerText = msg;
+      document.getElementById('toast-container').appendChild(box);
+      setTimeout(() => box.remove(), 3000);
+    }
+
+    async function api(url, method="GET", body=null) {
+      const headers = { "Content-Type": "application/json" };
+      if (state.adminPass) headers["x-admin-pass"] = state.adminPass;
+      try {
+        const res = await fetch(CONFIG.BACKEND + url, { method, headers, body: body ? JSON.stringify(body) : null });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "حدث خطأ");
+        return data;
+      } catch (err) {
+        showToast(err.message, 'error');
+        throw err;
+      }
+    }
+
+    function loadContent() {
+      checkAdmin();
+      loadVideos();
+      loadBooks();
+      loadTips();
+      loadPosts();
+    }
+
+    // --- تحميل البيانات (نفس الدوال السابقة) ---
+    async function loadVideos() {
+      const container = document.getElementById("videos-grid");
+      try {
+        // نستخدم البروكسي الخاص بنا مباشرة للثبات
+        const proxyRes = await fetch(`${CONFIG.BACKEND}/youtube-feed?channelId=${CONFIG.YOUTUBE}`);
+        if(proxyRes.ok){
+             const text = await proxyRes.text();
+             const parser = new DOMParser();
+             const xml = parser.parseFromString(text, "text/xml");
+             const items = Array.from(xml.querySelectorAll("entry")).slice(0, 30).map(e => ({
+                title: e.querySelector("title").textContent,
+                guid: e.querySelector("videoId").textContent
+             }));
+             
+             container.innerHTML = items.map(v => `
+             <div class="card">
+               <a href="https://www.youtube.com/watch?v=${v.guid}" target="_blank">
+                 <img src="https://img.youtube.com/vi/${v.guid}/hqdefault.jpg" class="video-thumb" loading="lazy">
+               </a>
+               <div class="card-content">
+                 <p class="card-title">${v.title}</p>
+               </div>
+             </div>`).join('');
+        } else {
+             throw new Error("Proxy failed");
+        }
+      } catch (e) { container.innerHTML = "<p style='text-align:center;width:100%'>جاري تحميل الفيديوهات...</p>"; }
+    }
+
+    async function loadBooks() {
+      try {
+        const res = await api('/books');
+        document.getElementById('books-grid').innerHTML = res.data.map(b => {
+          const fileId = b.url.match(/\/d\/([^/]+)/)?.[1];
+          return `
+          <div class="card">
+            <div style="height:180px; background:rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; overflow:hidden">
+              ${fileId ? `<iframe src="https://drive.google.com/file/d/${fileId}/preview" style="width:100%;height:100%;border:none;pointer-events:none"></iframe>` : '📚'}
+            </div>
+            <div class="card-content">
+              <h3 class="card-title">${b.title}</h3>
+              <div style="display:flex; gap:5px">
+                <a href="${b.url}" target="_blank" class="btn" style="flex:1;text-align:center">قراءة</a>
+                ${state.adminPass ? `<button onclick="del('books','${b.id || b._id}')" class="btn btn-danger">حذف</button>` : ''}
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+      } catch(e){}
+    }
+
+    async function loadTips() {
+      try {
+        const res = await api('/tips');
+        document.getElementById('tips-grid').innerHTML = res.data.map(t => `
+        <div class="card" style="border-right:4px solid var(--gold)">
+          <div class="card-content">
+            <p style="white-space:pre-wrap">${t.text}</p>
+            ${state.adminPass ? `
+            <div style="margin-top:10px; display:flex; gap:5px; justify-content:flex-end">
+               <button onclick="editTip('${t.id || t._id}', '${t.text.replace(/\n/g,'\\n').replace(/'/g, "\\'")}')" class="btn">تعديل</button>
+               <button onclick="del('tips','${t.id || t._id}')" class="btn btn-danger">حذف</button>
+            </div>` : ''}
+          </div>
+        </div>`).join('');
+      } catch(e){}
+    }
+
+    async function loadPosts() {
+      try {
+        const res = await api('/posts');
+        document.getElementById('posts-grid').innerHTML = res.data.map(p => `
+        <div class="card">
+          ${p.videoUrl ? `<video controls src="${p.videoUrl}" style="width:100%;height:200px;background:#000"></video>` : ''}
+          <div class="card-content">
+            <h3 class="card-title">${p.title}</h3>
+            <p style="color:#ccc; font-size:0.9rem; white-space:pre-wrap">${p.description}</p>
+            ${state.adminPass ? `<button onclick="del('posts','${p.id || p._id}')" class="btn btn-danger" style="width:100%;margin-top:10px">حذف</button>` : ''}
+          </div>
+        </div>`).join('');
+      } catch(e){}
+    }
+
+    // --- الإدارة ---
+    function handleAdminClick() {
+      state.adminPass ? (confirm("تسجيل خروج؟") && logout()) : toggleModal('login-modal', true);
+    }
+    function toggleModal(id, show) {
+      document.getElementById(id).classList.toggle('active', show);
+    }
+
+    document.getElementById('login-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('username').value;
+      const p = document.getElementById('password').value;
+      if (u !== "sayafbadarin") return showToast("اسم المستخدم خطأ", "error");
+      
+      try {
+        await api('/books', 'GET'); // اختبار الاتصال
+        state.adminPass = p;
+        sessionStorage.setItem("adminPass", p);
+        
+        checkAdmin();
+        toggleModal('login-modal', false);
+        showToast("تم الدخول بنجاح");
+        loadContent(); 
+      } catch(e) {
+        showToast("فشل الدخول (تحقق من كلمة المرور)", "error");
+        state.adminPass = null;
+      }
+    };
+
+    function checkAdmin() {
+      const isAdmin = !!state.adminPass;
+      // تلوين زر الادارة
+      document.getElementById('admin-toggle').style.background = isAdmin ? 'var(--gold)' : 'rgba(0,0,0,0.6)';
+      document.getElementById('admin-toggle').style.color = isAdmin ? '#000' : 'var(--gold)';
+      
+      // إظهار زر الصيانة للمشرف فقط
+      const maintBtn = document.getElementById('maint-toggle');
+      maintBtn.style.display = isAdmin ? 'flex' : 'none';
+      maintBtn.style.background = isMaintenance ? 'var(--danger)' : 'rgba(0,0,0,0.6)';
+      maintBtn.style.color = isMaintenance ? '#fff' : 'var(--danger)';
+
+      document.querySelectorAll('.upload-box').forEach(e => e.style.display = isAdmin ? 'block' : 'none');
+      document.getElementById('admin-actions').style.display = isAdmin ? 'block' : 'none';
+    }
+
+    function logout() {
+      sessionStorage.clear(); state.adminPass = null;
+      checkAdmin(); showToast("تم الخروج"); location.reload();
+    }
+
+    function updateUI() {
+        checkAdmin();
+    }
+
+    // --- عمليات الحذف والإضافة ---
+    async function del(type, id) {
+      if(confirm("تأكيد الحذف؟")) {
+        await api(`/${type}/${id}`, 'DELETE');
+        showToast("تم الحذف");
+        if(type=='books') loadBooks(); if(type=='tips') loadTips(); if(type=='posts') loadPosts();
+      }
+    }
+    
+    document.getElementById('book-form').onsubmit = async (e) => {
+      e.preventDefault();
+      await api('/books', 'POST', { title: e.target.title.value, url: e.target.url.value });
+      showToast("تم"); e.target.reset(); loadBooks();
+    };
+
+    document.getElementById('tip-form').onsubmit = async (e) => {
+      e.preventDefault();
+      await api('/tips', 'POST', { text: e.target.text.value });
+      showToast("تم"); e.target.reset(); loadTips();
+    };
+
+    document.getElementById('post-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button');
+      btn.innerText = "جاري الرفع..."; btn.disabled = true;
+      try {
+        let videoUrl = "";
+        const file = e.target.videoFile.files[0];
+        if (file) {
+          const fd = new FormData(); fd.append("file", file); fd.append("upload_preset", CONFIG.CLOUDINARY.PRESET);
+          const res = await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY.CLOUD_NAME}/upload`, { method:"POST", body:fd });
+          const data = await res.json();
+          videoUrl = data.secure_url;
+        }
+        await api('/posts', 'POST', { title: e.target.title.value, description: e.target.description.value, videoUrl });
+        showToast("تم النشر"); e.target.reset(); loadPosts();
+      } catch(err) { showToast("فشل الرفع", "error"); }
+      btn.innerText = "رفع ونشر"; btn.disabled = false;
+    };
+    
+    // تنقل الصفحات
+    window.switchPage = (id, btn) => {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
+      document.getElementById(id+'-page').classList.add('visible');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+    
+    window.changePass = async () => {
+      const n = prompt("كلمة المرور الجديدة (أكثر من 4 حروف):");
+      if(n) { await api('/admin/change-password', 'POST', {newPassword:n}); showToast("تم التغيير"); }
+    };
+  </script>
 </body>
 </html>
