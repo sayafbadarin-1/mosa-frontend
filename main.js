@@ -36,18 +36,16 @@ async function api(url, method="GET", body=null) {
 
 // --- لوحة التحكم (Dashboard) Logic ---
 function openDashboard() { document.getElementById('dashboard-overlay').classList.add('active'); }
-function closeDashboard() { document.getElementById('dashboard-overlay').classList.remove('active'); loadContent(); } // تحديث المحتوى عند الإغلاق
+function closeDashboard() { document.getElementById('dashboard-overlay').classList.remove('active'); loadContent(); }
 
 async function loadDashSection(section) {
   const content = document.getElementById('dash-content');
   content.innerHTML = '<p style="color:#aaa;text-align:center">جاري التحميل...</p>';
   
-  // تفعيل الزر النشط
   document.querySelectorAll('.dash-nav-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
 
   if (section === 'users') {
-    // === إدارة المشرفين ===
     try {
       const res = await api('/users');
       let html = `
@@ -62,92 +60,51 @@ async function loadDashSection(section) {
         </div>
         <h4 style="color:#fff">قائمة المشرفين</h4>
         <table class="admin-table"><thead><tr><th>الاسم</th><th>الدور</th><th>إجراء</th></tr></thead><tbody>`;
-      
       res.data.forEach(u => {
-        html += `<tr>
-          <td>${u.username}</td>
-          <td>${u.role==='super'?'👑 رئيسي':'👤 مشرف'}</td>
-          <td>${u.username!==currentUser.username ? `<button class="btn-danger" style="padding:5px 10px" onclick="del('users','${u._id}', true)">حذف</button>` : '-'}</td>
-        </tr>`;
+        html += `<tr><td>${u.username}</td><td>${u.role==='super'?'👑 رئيسي':'👤 مشرف'}</td><td>${u.username!==currentUser.username ? `<button class="btn-danger" style="padding:5px 10px" onclick="del('users','${u._id}', true)">حذف</button>` : '-'}</td></tr>`;
       });
       content.innerHTML = html + `</tbody></table>`;
     } catch { content.innerHTML = "فشل التحميل"; }
 
   } else if (section === 'maintenance') {
-    // === وضع الصيانة ===
     const status = isMaintenance ? "مفعل (الموقع مغلق)" : "معطل (الموقع يعمل)";
     const color = isMaintenance ? "var(--danger)" : "var(--success)";
-    content.innerHTML = `
-      <div style="text-align:center; margin-top:50px">
-        <h2 style="color:${color}">${status}</h2>
-        <p style="color:#aaa">عند تفعيل الصيانة، لن يتمكن الزوار من رؤية المحتوى.</p>
-        <button class="btn" style="padding:15px 30px; font-size:1.1rem; margin-top:20px" onclick="toggleMaintenance()">
-          ${isMaintenance ? "إلغاء وضع الصيانة ✅" : "تفعيل وضع الصيانة 🛠️"}
-        </button>
-      </div>`;
+    content.innerHTML = `<div style="text-align:center; margin-top:50px"><h2 style="color:${color}">${status}</h2><p style="color:#aaa">عند تفعيل الصيانة، لن يتمكن الزوار من رؤية المحتوى.</p><button class="btn" style="padding:15px 30px; font-size:1.1rem; margin-top:20px" onclick="toggleMaintenance()">${isMaintenance ? "إلغاء وضع الصيانة ✅" : "تفعيل وضع الصيانة 🛠️"}</button></div>`;
 
   } else if (section.startsWith('manage-')) {
-    // === إدارة المحتوى (كتب، إرشادات، مشاركات) ===
-    const type = section.split('-')[1]; // books, tips, posts
+    const type = section.split('-')[1];
     const titles = { books: "الكتب", tips: "الإرشادات", posts: "المشاركات" };
-    
-    // زر الإضافة
     let formHtml = '';
     if(type === 'books') formHtml = `<input id="new-t" placeholder="عنوان الكتاب"><input id="new-u" placeholder="رابط الكتاب">`;
     else if(type === 'tips') formHtml = `<textarea id="new-t" rows="2" placeholder="نص الإرشاد"></textarea>`;
     else if(type === 'posts') formHtml = `<input id="new-t" placeholder="العنوان"><textarea id="new-d" placeholder="الوصف"></textarea><input type="file" id="new-f" accept="video/*" style="margin-top:5px">`;
 
-    content.innerHTML = `
-      <div style="background:#1a1a1a; padding:15px; border-radius:8px; margin-bottom:20px;">
-        <h4 style="color:var(--gold); margin-top:0">إضافة ${titles[type]}</h4>
-        <div style="display:flex; flex-direction:column; gap:10px">
-          ${formHtml}
-          <button class="btn" onclick="addItem('${type}')">نشر</button>
-        </div>
-      </div>
-      <h4 style="color:#fff">قائمة ${titles[type]}</h4>
-      <div id="dash-list">جاري الجلب...</div>
-    `;
+    content.innerHTML = `<div style="background:#1a1a1a; padding:15px; border-radius:8px; margin-bottom:20px;"><h4 style="color:var(--gold); margin-top:0">إضافة ${titles[type]}</h4><div style="display:flex; flex-direction:column; gap:10px">${formHtml}<button class="btn" onclick="addItem('${type}')">نشر</button></div></div><h4 style="color:#fff">قائمة ${titles[type]}</h4><div id="dash-list">جاري الجلب...</div>`;
     
-    // جلب القائمة
     try {
       const res = await api(`/${type}`);
       const listDiv = document.getElementById('dash-list');
       if(res.data.length === 0) { listDiv.innerHTML = "لا يوجد محتوى"; return; }
-      
       let table = `<table class="admin-table"><thead><tr><th>المحتوى/العنوان</th><th>إجراء</th></tr></thead><tbody>`;
       res.data.forEach(i => {
-        table += `<tr>
-          <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${i.title || i.text}</td>
-          <td>
-            <button class="btn-outline" style="padding:5px 10px; font-size:0.8rem" onclick="editItem('${type}','${i._id}','${(i.title||i.text).replace(/'/g,"")}')">تعديل</button>
-            <button class="btn-danger" style="padding:5px 10px; font-size:0.8rem" onclick="del('${type}','${i._id}', true)">حذف</button>
-          </td>
-        </tr>`;
+        table += `<tr><td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${i.title || i.text}</td><td><button class="btn-outline" style="padding:5px 10px; font-size:0.8rem; margin-left:5px" onclick="editItem('${type}','${i._id}','${(i.title||i.text).replace(/'/g,"")}')">تعديل</button><button class="btn-danger" style="padding:5px 10px; font-size:0.8rem" onclick="del('${type}','${i._id}', true)">حذف</button></td></tr>`;
       });
       listDiv.innerHTML = table + `</tbody></table>`;
     } catch { document.getElementById('dash-list').innerHTML = "فشل"; }
   }
 }
 
-// --- عمليات لوحة التحكم ---
 async function addUser(e) {
   e.preventDefault();
   const u = e.target.u.value; const p = e.target.p.value; const r = e.target.r.value;
-  try {
-    await api('/users', 'POST', { username:u, password:p, role:r });
-    showToast("تم"); loadDashSection('users');
-  } catch {}
+  try { await api('/users', 'POST', { username:u, password:p, role:r }); showToast("تم"); loadDashSection('users'); } catch {}
 }
 
 async function addItem(type) {
   const body = {};
-  if(type === 'books') {
-    body.title = document.getElementById('new-t').value;
-    body.url = document.getElementById('new-u').value;
-  } else if (type === 'tips') {
-    body.text = document.getElementById('new-t').value;
-  } else if (type === 'posts') {
+  if(type === 'books') { body.title = document.getElementById('new-t').value; body.url = document.getElementById('new-u').value; }
+  else if (type === 'tips') { body.text = document.getElementById('new-t').value; }
+  else if (type === 'posts') {
     body.title = document.getElementById('new-t').value;
     body.description = document.getElementById('new-d').value;
     const file = document.getElementById('new-f').files[0];
@@ -158,22 +115,15 @@ async function addItem(type) {
       body.videoUrl = (await res.json()).secure_url;
     }
   }
-  
-  try {
-    await api(`/${type}`, 'POST', body);
-    showToast("تم النشر"); loadDashSection('manage-'+type);
-  } catch {}
+  try { await api(`/${type}`, 'POST', body); showToast("تم النشر"); loadDashSection('manage-'+type); } catch {}
 }
 
 async function editItem(type, id, oldVal) {
   const newVal = prompt("تعديل النص/العنوان:", oldVal);
   if(newVal && newVal !== oldVal) {
-    const body = type==='tips' ? {text:newVal} : {title:newVal}; // تبسيط التعديل للعنوان فقط حالياً
-    await api(`/${type}/${id}`, 'PUT', body); // تأكد أن السيرفر يدعم PUT للكتب والمشاركات إذا أردت
-    // ملاحظة: السيرفر في الكود السابق يدعم PUT لـ Users و Tips. إذا أردت دعم الكتب والمشاركات، أضف المسارات في server.js
-    // حالياً سأفعل الـ Tips فقط كما في السيرفر
-    if(type === 'tips') { showToast("تم"); loadDashSection('manage-'+type); }
-    else alert("التعديل متاح للإرشادات حالياً، للكتب والمشاركات يفضل الحذف والنشر مجدداً");
+    const body = type==='tips' ? {text:newVal} : {title:newVal};
+    await api(`/${type}/${id}`, 'PUT', body);
+    showToast("تم"); loadDashSection('manage-'+type);
   }
 }
 
@@ -183,8 +133,7 @@ async function del(type, id, refreshDash=false) {
     await api(`/${type}/${id}`, 'DELETE');
     showToast("تم الحذف");
     if(refreshDash) {
-      if(type==='users') loadDashSection('users');
-      else loadDashSection('manage-'+type);
+      if(type==='users') loadDashSection('users'); else loadDashSection('manage-'+type);
     }
   } catch {}
 }
@@ -192,14 +141,9 @@ async function del(type, id, refreshDash=false) {
 async function toggleMaintenance() {
   const newState = !isMaintenance;
   if(!confirm(newState ? "إغلاق الموقع؟" : "فتح الموقع؟")) return;
-  try {
-    await api('/config/maintenance', 'POST', { status: newState });
-    isMaintenance = newState;
-    loadDashSection('maintenance'); // تحديث الواجهة
-  } catch {}
+  try { await api('/config/maintenance', 'POST', { status: newState }); isMaintenance = newState; loadDashSection('maintenance'); } catch {}
 }
 
-// --- تسجيل الدخول (للمودال) ---
 document.getElementById('login-form').onsubmit = async (e) => {
   e.preventDefault();
   const u = document.getElementById('username').value;
@@ -213,26 +157,17 @@ document.getElementById('login-form').onsubmit = async (e) => {
       document.getElementById('login-modal').classList.remove('active');
       document.getElementById("maintenance-overlay").style.display = "none";
       document.getElementById('admin-float-btn').style.display = 'flex';
-      openDashboard(); // فتح اللوحة مباشرة
+      openDashboard();
       showToast(`مرحباً ${json.username}`);
     } else showToast(json.message, "error");
   } catch { showToast("خطأ اتصال", "error"); }
 };
 
-function logout() {
-  sessionStorage.removeItem("mosa_user");
-  location.reload();
-}
+function logout() { sessionStorage.removeItem("mosa_user"); location.reload(); }
 
-// --- الوظائف العامة (عرض، مفضلة) ---
-async function loadContent() {
-  // هنا نحمل المحتوى للعرض العام (بدون أزرار حذف)
-  loadVideos(); loadBooks(); loadTips(); loadPosts();
-}
+async function loadContent() { loadVideos(); loadBooks(); loadTips(); loadPosts(); }
 
-// ... (أبقِ دوال loadVideos, loadBooks, etc كما هي في السابق لكن احذف أزرار الحذف منها) ...
-// سأكتب لك النسخ "النظيفة" هنا لتستبدلها:
-
+// دوال العرض العامة (بدون أزرار حذف)
 async function loadVideos() {
   const c = document.getElementById("videos-grid");
   try {
@@ -248,7 +183,6 @@ async function loadBooks() { try { const r = await fetch(`${CONFIG.BACKEND}/book
 async function loadTips() { try { const r = await fetch(`${CONFIG.BACKEND}/tips`); const j = await r.json(); document.getElementById('tips-grid').innerHTML = j.data.map(t => `<div class="card" style="border-right:4px solid var(--gold)"><div class="card-content"><p style="white-space:pre-wrap">${t.text}</p></div>${getActionsHTML(t._id, 'tip', 'إرشاد', t.text, window.location.href, '')}</div>`).join(''); } catch{} }
 async function loadPosts() { try { const r = await fetch(`${CONFIG.BACKEND}/posts`); const j = await r.json(); document.getElementById('posts-grid').innerHTML = j.data.map(p => `<div class="card">${p.videoUrl?`<video controls src="${p.videoUrl}" style="width:100%;height:200px;background:#000"></video>`:''}<div class="card-content"><h3 class="card-title">${p.title}</h3><p style="color:#ccc;font-size:0.9rem;white-space:pre-wrap">${p.description}</p></div>${getActionsHTML(p._id, 'post', p.title, p.description, p.videoUrl||window.location.href, '')}</div>`).join(''); } catch{} }
 
-// باقي الدوال المساعدة (مفضلة، صيانة، الخ)
 function getFavs() { return JSON.parse(localStorage.getItem('mosa_favs') || '[]'); }
 function isFav(id) { return getFavs().some(x => x.id === id); }
 function toggleFav(id, type, title, content, url, img) {
