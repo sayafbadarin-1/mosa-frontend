@@ -129,6 +129,18 @@ main { padding: 20px; max-width: 1200px; margin: 0 auto; min-height: 50vh; }
 .toast.success { border-color: var(--success); } .toast.error { border-color: var(--danger); }
 .skeleton { background: #222; height: 200px; border-radius: 12px; animation: pulse 1.5s infinite; }
 
+footer { text-align: center; padding: 40px; border-top: 1px solid #222; color: #666; margin-top: 50px; }
+
+/* أزرار التواصل */
+.social-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: #222; color: #fff; text-decoration: none;
+  border-radius: 20px; margin: 5px; border: 1px solid #333; transition: 0.3s;
+}
+.social-btn:hover { background: #333; transform: translateY(-2px); }
+.social-btn.tg { color: #0088cc; border-color: #0088cc; } 
+.social-btn.wa { color: #25d366; border-color: #25d366; }
+
 @media (max-width: 768px) {
   .dash-body { flex-direction: column; }
   .dash-sidebar { width: 100%; border-left: none; border-bottom: 1px solid #333; padding: 10px; flex-direction: row; overflow-x: auto; }
