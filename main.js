@@ -12,10 +12,7 @@ let isMaintenance = false;
 // --- عند بدء التشغيل ---
 (async function init() {
   await checkMaintenance();
-  
-  // تفعيل زر المفضلة عند التحميل (للتأكد)
   if(document.getElementById('favorites-grid')) loadFavorites();
-
   loadContent();
 })();
 
@@ -23,7 +20,6 @@ let isMaintenance = false;
 function getFavs() { return JSON.parse(localStorage.getItem('mosa_favs') || '[]'); }
 function isFav(id) { return getFavs().some(x => x.id === id); }
 
-// دالة المشاركة (Share)
 function shareItem(title, url) {
   if (navigator.share) {
     navigator.share({ title: title, text: title + "\nمن موقع الشيخ موسى الخلايلة", url: url })
@@ -33,30 +29,22 @@ function shareItem(title, url) {
   }
 }
 
-// دالة تبديل المفضلة (إضافة/حذف)
 function toggleFav(id, type, title, content, url, img) {
   let favs = getFavs();
   const idx = favs.findIndex(x => x.id === id);
-  
   if (idx > -1) {
-    favs.splice(idx, 1); // حذف
+    favs.splice(idx, 1);
     showToast("تمت الإزالة من المفضلة 🗑️", "error");
   } else {
-    favs.push({ id, type, title, content, url, img }); // إضافة
+    favs.push({ id, type, title, content, url, img });
     showToast("تم الحفظ في المفضلة ❤️");
   }
-  
   localStorage.setItem('mosa_favs', JSON.stringify(favs));
-  
-  // تحديث شكل القلب فوراً
   const btn = document.getElementById(`fav-btn-${id}`);
   if(btn) btn.classList.toggle('active');
-  
-  // إذا كنا في صفحة المفضلة، أعد تحميلها
   if(document.getElementById('favorites-page').classList.contains('visible')) loadFavorites();
 }
 
-// توليد أزرار التفاعل (قلب ومشاركة)
 function getActionsHTML(id, type, title, content, url, img) {
   const safeTitle = encodeURIComponent(title || "");
   const safeContent = encodeURIComponent(content || "");
@@ -79,7 +67,6 @@ function getActionsHTML(id, type, title, content, url, img) {
 }
 
 // --- تحميل البيانات ---
-
 async function loadVideos() {
   const container = document.getElementById("videos-grid");
   try {
@@ -92,18 +79,13 @@ async function loadVideos() {
           title: e.querySelector("title").textContent,
           guid: e.querySelector("videoId").textContent
        }));
-       
        container.innerHTML = items.map(v => {
          const url = `https://www.youtube.com/watch?v=${v.guid}`;
          const img = `https://img.youtube.com/vi/${v.guid}/hqdefault.jpg`;
          return `
          <div class="card">
-           <a href="${url}" target="_blank">
-             <img src="${img}" class="video-thumb" loading="lazy">
-           </a>
-           <div class="card-content">
-             <p class="card-title">${v.title}</p>
-           </div>
+           <a href="${url}" target="_blank"><img src="${img}" class="video-thumb" loading="lazy"></a>
+           <div class="card-content"><p class="card-title">${v.title}</p></div>
            ${getActionsHTML(v.guid, 'video', v.title, '', url, img)}
          </div>`;
        }).join('');
@@ -175,20 +157,16 @@ async function loadPosts() {
   } catch(e){}
 }
 
-// عرض صفحة المفضلة
 function loadFavorites() {
   const favs = getFavs();
   const container = document.getElementById('favorites-grid');
-  
   if (favs.length === 0) {
     container.innerHTML = "<p style='text-align:center; width:100%; color:#aaa'>لم تقم بحفظ أي شيء بعد 🍂</p>";
     return;
   }
-
   container.innerHTML = favs.map(item => {
     let mediaHTML = '';
     let linkHTML = '';
-    
     if (item.type === 'video') {
        mediaHTML = `<a href="${item.url}" target="_blank"><img src="${item.img}" class="video-thumb"></a>`;
     } else if (item.type === 'book') {
@@ -197,7 +175,6 @@ function loadFavorites() {
     } else if (item.type === 'post' && item.url && item.url.includes('cloudinary')) {
        mediaHTML = `<video controls src="${item.url}" style="width:100%;height:200px"></video>`;
     }
-
     return `
     <div class="card">
       ${mediaHTML}
@@ -212,7 +189,6 @@ function loadFavorites() {
 }
 
 // --- إدارة الصيانة والدخول ---
-
 async function checkMaintenance() {
   try {
     const res = await fetch(`${CONFIG.BACKEND}/config/status`);
@@ -243,7 +219,6 @@ async function toggleMaintenance() {
 }
 
 document.getElementById("force-enter-btn").onclick = () => { toggleModal('login-modal', true); };
-
 function enterSite() { document.getElementById('welcome-overlay').classList.remove('active'); }
 
 function showToast(msg, type='success') {
@@ -266,11 +241,7 @@ async function api(url, method="GET", body=null) {
 }
 
 function loadContent() {
-  checkAdmin();
-  loadVideos();
-  loadBooks();
-  loadTips();
-  loadPosts();
+  checkAdmin(); loadVideos(); loadBooks(); loadTips(); loadPosts();
 }
 
 function handleAdminClick() { state.adminPass ? (confirm("تسجيل خروج؟") && logout()) : toggleModal('login-modal', true); }
