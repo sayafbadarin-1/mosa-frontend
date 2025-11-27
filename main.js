@@ -12,10 +12,24 @@ let isMaintenance = false;
 (async function init() {
   await checkMaintenance();
   if(document.getElementById('favorites-grid')) loadFavorites();
+  
+  // تفعيل زر الدخول في القائمة العلوية
+  document.getElementById("cornerLogin").addEventListener("click", () => {
+    if(currentUser) {
+        // إذا كان مسجلاً للدخول مسبقاً، نفتح له لوحة التحكم مباشرة
+        openDashboard();
+    } else {
+        // إذا لم يكن مسجلاً، نفتح نافذة تسجيل الدخول
+        document.getElementById('login-modal').classList.add('active');
+    }
+  });
+
   if (currentUser) {
     document.getElementById('admin-float-btn').style.display = 'flex';
     document.getElementById('dash-user-name').innerText = currentUser.username + (currentUser.role==='super'?' (👑)':'');
     document.getElementById('super-admin-menu').style.display = currentUser.role==='super' ? 'flex' : 'none';
+    // نغير شكل القفل لمفتوح إذا كان مسجلاً
+    document.getElementById("cornerLogin").innerText = "🔓";
   }
   loadContent();
 })();
@@ -157,17 +171,21 @@ document.getElementById('login-form').onsubmit = async (e) => {
       document.getElementById('login-modal').classList.remove('active');
       document.getElementById("maintenance-overlay").style.display = "none";
       document.getElementById('admin-float-btn').style.display = 'flex';
+      document.getElementById("cornerLogin").innerText = "🔓"; // تغيير أيقونة القفل
       openDashboard();
       showToast(`مرحباً ${json.username}`);
     } else showToast(json.message, "error");
   } catch { showToast("خطأ اتصال", "error"); }
 };
 
-function logout() { sessionStorage.removeItem("mosa_user"); location.reload(); }
+function logout() {
+  sessionStorage.removeItem("mosa_user");
+  location.reload();
+}
 
 async function loadContent() { loadVideos(); loadBooks(); loadTips(); loadPosts(); }
 
-// دوال العرض العامة (بدون أزرار حذف)
+// دوال العرض العامة
 async function loadVideos() {
   const c = document.getElementById("videos-grid");
   try {
