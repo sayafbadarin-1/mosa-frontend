@@ -29,6 +29,7 @@
     /* === التحركات === */
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes pulse { 0% { background: #1a1a1a; } 50% { background: #252525; } 100% { background: #1a1a1a; } }
+    @keyframes heartBeat { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
     
     /* === المكونات === */
     .btn {
@@ -84,17 +85,31 @@
     
     .card { 
       background: var(--panel-dark); backdrop-filter: blur(5px);
-      border: 1px solid #222; border-radius: 12px; overflow: hidden; transition: 0.3s; 
+      border: 1px solid #222; border-radius: 12px; overflow: hidden; transition: 0.3s; display: flex; flex-direction: column;
     }
     .card:hover { transform: translateY(-5px); border-color: var(--gold-dim); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .card-content { padding: 15px; }
+    .card-content { padding: 15px; flex-grow: 1; }
     .card-title { font-size: 1.1rem; margin: 0 0 10px; font-weight: 600; color: #eee; }
     .video-thumb { width: 100%; height: 180px; object-fit: cover; }
+
+    /* === أزرار التفاعل الجديدة (مشاركة + مفضلة) === */
+    .card-actions {
+      display: flex; justify-content: space-between; padding: 10px 15px;
+      border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
+    }
+    .action-btn {
+      background: transparent; border: none; cursor: pointer; font-size: 1.2rem;
+      transition: 0.3s; padding: 5px; border-radius: 50%; width: 35px; height: 35px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .action-btn:hover { background: rgba(255,255,255,0.1); }
+    .fav-btn { color: #777; }
+    .fav-btn.active { color: #e74c3c; animation: heartBeat 0.4s; }
+    .share-btn { color: var(--gold); }
 
     .upload-box { background: rgba(20,20,20,0.6); border: 1px dashed #444; padding: 20px; border-radius: 12px; margin-bottom: 30px; text-align: center; max-width: 600px; margin-inline: auto; }
     
     /* === النوافذ المنبثقة === */
-    /* z-index هنا 20000 ليكون أعلى من شاشة الصيانة */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 20000; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: 0.3s; }
     .modal-overlay.active { visibility: visible; opacity: 1; }
     .modal-box { 
@@ -112,7 +127,7 @@
     #admin-toggle { top: 15px; }
     #maint-toggle { top: 65px; border-color: var(--danger); color: var(--danger); display: none; }
     
-    /* شاشة الصيانة: z-index 15000 (أقل من المودال وأعلى من الموقع) */
+    /* شاشة الصيانة */
     #maintenance-overlay {
       position: fixed; inset: 0; background: #080808; z-index: 15000;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -180,6 +195,7 @@
     <button class="nav-btn" onclick="switchPage('books', this)">📚 المكتبة</button>
     <button class="nav-btn" onclick="switchPage('tips', this)">🌿 إرشادات</button>
     <button class="nav-btn" onclick="switchPage('posts', this)">✍️ المشاركات</button>
+    <button class="nav-btn" onclick="switchPage('favorites', this)">⭐ المفضلة</button>
   </nav>
 
   <main>
@@ -222,6 +238,11 @@
       </form>
       <div id="posts-grid" class="grid"></div>
     </section>
+
+    <section id="favorites-page" class="page">
+      <div style="text-align:center; margin-bottom:20px; color:var(--gold)">العناصر التي حفظتها</div>
+      <div id="favorites-grid" class="grid"></div>
+    </section>
   </main>
 
   <footer>
@@ -236,302 +257,6 @@
     <p>© 2025 موقع الشيخ موسى أحمد الخلايلة</p>
   </footer>
 
-  <script>
-    const CONFIG = {
-      // رابط سيرفرك الذي يعمل حالياً
-      BACKEND: "https://mosa-backend-dr63.onrender.com", 
-      CLOUDINARY: { CLOUD_NAME: "dkdnq0zj3", PRESET: "unsigned_posts_preset" },
-      YOUTUBE: "UChFRy4s3_0MVJ3Hmw2AMcoQ"
-    };
-
-    let state = { adminPass: sessionStorage.getItem("adminPass") };
-    let isMaintenance = false;
-
-    // --- عند بدء التشغيل ---
-    (async function init() {
-      await checkMaintenance();
-      loadContent();
-    })();
-
-    // --- منطق الصيانة والترحيب ---
-    async function checkMaintenance() {
-      try {
-        const res = await fetch(`${CONFIG.BACKEND}/config/status`);
-        const data = await res.json();
-        isMaintenance = data.maintenance;
-
-        const maintOverlay = document.getElementById("maintenance-overlay");
-        const welcomeOverlay = document.getElementById("welcome-overlay");
-
-        if (isMaintenance) {
-          // إذا الموقع في صيانة: أظهر شاشة الصيانة، وأخف الترحيب
-          maintOverlay.style.display = "flex";
-          welcomeOverlay.style.display = "none";
-          welcomeOverlay.classList.remove('active');
-        } else {
-          // الوضع الطبيعي
-          maintOverlay.style.display = "none";
-        }
-      } catch (e) { console.error("Error fetching maintenance status"); }
-    }
-
-    // زر التحكم بالصيانة (للمشرف)
-    async function toggleMaintenance() {
-      if(!state.adminPass) return;
-      const newState = !isMaintenance;
-      const msg = newState ? 
-        "تفعيل وضع الصيانة؟ (سيتم إغلاق الموقع أمام الزوار)" : 
-        "إلغاء وضع الصيانة وفتح الموقع؟";
-      
-      if(!confirm(msg)) return;
-
-      try {
-        const res = await api('/config/maintenance', 'POST', { status: newState });
-        showToast(res.message);
-        isMaintenance = newState;
-        updateUI(); 
-      } catch (e) {}
-    }
-
-    // الدخول الإجباري للمشرف أثناء الصيانة
-    document.getElementById("force-enter-btn").onclick = () => {
-      // نفتح نافذة الدخول فوق شاشة الصيانة
-      toggleModal('login-modal', true);
-    };
-
-    // --- الدوال الأساسية ---
-    function enterSite() {
-      document.getElementById('welcome-overlay').classList.remove('active');
-    }
-
-    function showToast(msg, type='success') {
-      const box = document.createElement('div');
-      box.className = `toast ${type}`;
-      box.innerText = msg;
-      document.getElementById('toast-container').appendChild(box);
-      setTimeout(() => box.remove(), 3000);
-    }
-
-    async function api(url, method="GET", body=null) {
-      const headers = { "Content-Type": "application/json" };
-      if (state.adminPass) headers["x-admin-pass"] = state.adminPass;
-      try {
-        const res = await fetch(CONFIG.BACKEND + url, { method, headers, body: body ? JSON.stringify(body) : null });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "حدث خطأ");
-        return data;
-      } catch (err) {
-        showToast(err.message, 'error');
-        throw err;
-      }
-    }
-
-    function loadContent() {
-      checkAdmin();
-      loadVideos();
-      loadBooks();
-      loadTips();
-      loadPosts();
-    }
-
-    // --- تحميل البيانات ---
-    async function loadVideos() {
-      const container = document.getElementById("videos-grid");
-      try {
-        // نستخدم البروكسي الخاص بنا مباشرة للثبات
-        const proxyRes = await fetch(`${CONFIG.BACKEND}/youtube-feed?channelId=${CONFIG.YOUTUBE}`);
-        if(proxyRes.ok){
-             const text = await proxyRes.text();
-             const parser = new DOMParser();
-             const xml = parser.parseFromString(text, "text/xml");
-             const items = Array.from(xml.querySelectorAll("entry")).slice(0, 30).map(e => ({
-                title: e.querySelector("title").textContent,
-                guid: e.querySelector("videoId").textContent
-             }));
-             
-             container.innerHTML = items.map(v => `
-             <div class="card">
-               <a href="https://www.youtube.com/watch?v=${v.guid}" target="_blank">
-                 <img src="https://img.youtube.com/vi/${v.guid}/hqdefault.jpg" class="video-thumb" loading="lazy">
-               </a>
-               <div class="card-content">
-                 <p class="card-title">${v.title}</p>
-               </div>
-             </div>`).join('');
-        } else {
-             throw new Error("Proxy failed");
-        }
-      } catch (e) { container.innerHTML = "<p style='text-align:center;width:100%'>جاري تحميل الفيديوهات...</p>"; }
-    }
-
-    async function loadBooks() {
-      try {
-        const res = await api('/books');
-        document.getElementById('books-grid').innerHTML = res.data.map(b => {
-          const fileId = b.url.match(/\/d\/([^/]+)/)?.[1];
-          return `
-          <div class="card">
-            <div style="height:180px; background:rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; overflow:hidden">
-              ${fileId ? `<iframe src="https://drive.google.com/file/d/${fileId}/preview" style="width:100%;height:100%;border:none;pointer-events:none"></iframe>` : '📚'}
-            </div>
-            <div class="card-content">
-              <h3 class="card-title">${b.title}</h3>
-              <div style="display:flex; gap:5px">
-                <a href="${b.url}" target="_blank" class="btn" style="flex:1;text-align:center">قراءة</a>
-                ${state.adminPass ? `<button onclick="del('books','${b.id || b._id}')" class="btn btn-danger">حذف</button>` : ''}
-              </div>
-            </div>
-          </div>`;
-        }).join('');
-      } catch(e){}
-    }
-
-    async function loadTips() {
-      try {
-        const res = await api('/tips');
-        document.getElementById('tips-grid').innerHTML = res.data.map(t => `
-        <div class="card" style="border-right:4px solid var(--gold)">
-          <div class="card-content">
-            <p style="white-space:pre-wrap">${t.text}</p>
-            ${state.adminPass ? `
-            <div style="margin-top:10px; display:flex; gap:5px; justify-content:flex-end">
-               <button onclick="editTip('${t.id || t._id}', '${t.text.replace(/\n/g,'\\n').replace(/'/g, "\\'")}')" class="btn">تعديل</button>
-               <button onclick="del('tips','${t.id || t._id}')" class="btn btn-danger">حذف</button>
-            </div>` : ''}
-          </div>
-        </div>`).join('');
-      } catch(e){}
-    }
-
-    async function loadPosts() {
-      try {
-        const res = await api('/posts');
-        document.getElementById('posts-grid').innerHTML = res.data.map(p => `
-        <div class="card">
-          ${p.videoUrl ? `<video controls src="${p.videoUrl}" style="width:100%;height:200px;background:#000"></video>` : ''}
-          <div class="card-content">
-            <h3 class="card-title">${p.title}</h3>
-            <p style="color:#ccc; font-size:0.9rem; white-space:pre-wrap">${p.description}</p>
-            ${state.adminPass ? `<button onclick="del('posts','${p.id || p._id}')" class="btn btn-danger" style="width:100%;margin-top:10px">حذف</button>` : ''}
-          </div>
-        </div>`).join('');
-      } catch(e){}
-    }
-
-    // --- الإدارة ---
-    function handleAdminClick() {
-      state.adminPass ? (confirm("تسجيل خروج؟") && logout()) : toggleModal('login-modal', true);
-    }
-    function toggleModal(id, show) {
-      document.getElementById(id).classList.toggle('active', show);
-    }
-
-    document.getElementById('login-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const u = document.getElementById('username').value;
-      const p = document.getElementById('password').value;
-      if (u !== "sayafbadarin") return showToast("اسم المستخدم خطأ", "error");
-      
-      try {
-        await api('/books', 'GET'); 
-        state.adminPass = p;
-        sessionStorage.setItem("adminPass", p);
-        
-        checkAdmin();
-        toggleModal('login-modal', false);
-        showToast("تم الدخول بنجاح");
-        
-        // عند نجاح الدخول، نخفي شاشة الصيانة يدوياً للمشرف
-        document.getElementById("maintenance-overlay").style.display = "none";
-
-        loadContent(); 
-      } catch(e) {
-        showToast("فشل الدخول (تحقق من كلمة المرور)", "error");
-        state.adminPass = null;
-      }
-    };
-
-    function checkAdmin() {
-      const isAdmin = !!state.adminPass;
-      // تلوين زر الادارة
-      document.getElementById('admin-toggle').style.background = isAdmin ? 'var(--gold)' : 'rgba(0,0,0,0.6)';
-      document.getElementById('admin-toggle').style.color = isAdmin ? '#000' : 'var(--gold)';
-      
-      // إظهار زر الصيانة للمشرف فقط
-      const maintBtn = document.getElementById('maint-toggle');
-      maintBtn.style.display = isAdmin ? 'flex' : 'none';
-      maintBtn.style.background = isMaintenance ? 'var(--danger)' : 'rgba(0,0,0,0.6)';
-      maintBtn.style.color = isMaintenance ? '#fff' : 'var(--danger)';
-
-      document.querySelectorAll('.upload-box').forEach(e => e.style.display = isAdmin ? 'block' : 'none');
-      document.getElementById('admin-actions').style.display = isAdmin ? 'block' : 'none';
-    }
-
-    function logout() {
-      sessionStorage.clear(); state.adminPass = null;
-      checkAdmin(); showToast("تم الخروج"); location.reload();
-    }
-
-    function updateUI() {
-        checkAdmin();
-    }
-
-    // --- عمليات الحذف والإضافة ---
-    async function del(type, id) {
-      if(confirm("تأكيد الحذف؟")) {
-        await api(`/${type}/${id}`, 'DELETE');
-        showToast("تم الحذف");
-        if(type=='books') loadBooks(); if(type=='tips') loadTips(); if(type=='posts') loadPosts();
-      }
-    }
-    
-    document.getElementById('book-form').onsubmit = async (e) => {
-      e.preventDefault();
-      await api('/books', 'POST', { title: e.target.title.value, url: e.target.url.value });
-      showToast("تم"); e.target.reset(); loadBooks();
-    };
-
-    document.getElementById('tip-form').onsubmit = async (e) => {
-      e.preventDefault();
-      await api('/tips', 'POST', { text: e.target.text.value });
-      showToast("تم"); e.target.reset(); loadTips();
-    };
-
-    document.getElementById('post-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const btn = e.target.querySelector('button');
-      btn.innerText = "جاري الرفع..."; btn.disabled = true;
-      try {
-        let videoUrl = "";
-        const file = e.target.videoFile.files[0];
-        if (file) {
-          const fd = new FormData(); fd.append("file", file); fd.append("upload_preset", CONFIG.CLOUDINARY.PRESET);
-          const res = await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY.CLOUD_NAME}/upload`, { method:"POST", body:fd });
-          const data = await res.json();
-          videoUrl = data.secure_url;
-        }
-        await api('/posts', 'POST', { title: e.target.title.value, description: e.target.description.value, videoUrl });
-        showToast("تم النشر"); e.target.reset(); loadPosts();
-      } catch(err) { showToast("فشل الرفع", "error"); }
-      btn.innerText = "رفع ونشر"; btn.disabled = false;
-    };
-    
-    window.switchPage = (id, btn) => {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
-      document.getElementById(id+'-page').classList.add('visible');
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    };
-    
-    window.changePass = async () => {
-      const n = prompt("كلمة المرور الجديدة (أكثر من 4 حروف):");
-      if(n) { await api('/admin/change-password', 'POST', {newPassword:n}); showToast("تم التغيير"); }
-    };
-
-    window.editTip = async (id, txt) => {
-      const n = prompt("تعديل:", txt);
-      if(n && n!==txt) { await api(`/tips/${id}`, 'PUT', {text:n}); showToast("تم"); loadTips(); }
-    };
-  </script>
+  <script src="main.js"></script>
 </body>
 </html>
