@@ -13,28 +13,16 @@ let isMaintenance = false;
   await checkMaintenance();
   if(document.getElementById('favorites-grid')) loadFavorites();
   
-  // تفعيل زر الدخول في القائمة العلوية
   document.getElementById("cornerLogin").addEventListener("click", () => {
-    if(currentUser) {
-        // إذا كان مسجلاً للدخول مسبقاً، نفتح له لوحة التحكم مباشرة
-        openDashboard();
-    } else {
-        // إذا لم يكن مسجلاً، نفتح نافذة تسجيل الدخول
-        document.getElementById('login-modal').classList.add('active');
-    }
+    if(currentUser) openDashboard();
+    else document.getElementById('login-modal').classList.add('active');
   });
 
-  if (currentUser) {
-    document.getElementById('admin-float-btn').style.display = 'flex';
-    document.getElementById('dash-user-name').innerText = currentUser.username + (currentUser.role==='super'?' (👑)':'');
-    document.getElementById('super-admin-menu').style.display = currentUser.role==='super' ? 'flex' : 'none';
-    // نغير شكل القفل لمفتوح إذا كان مسجلاً
-    document.getElementById("cornerLogin").innerText = "🔓";
-  }
+  if (currentUser) updateUI();
   loadContent();
 })();
 
-// --- أدوات API ---
+// --- API Helper ---
 function getAuthHeaders() {
   if (!currentUser) return { "Content-Type": "application/json" };
   return { "Content-Type": "application/json", "x-username": currentUser.username, "x-password": currentUser.password };
@@ -48,9 +36,22 @@ async function api(url, method="GET", body=null) {
   } catch (err) { showToast(err.message, 'error'); throw err; }
 }
 
-// --- لوحة التحكم (Dashboard) Logic ---
+// --- Dashboard Logic ---
 function openDashboard() { document.getElementById('dashboard-overlay').classList.add('active'); }
 function closeDashboard() { document.getElementById('dashboard-overlay').classList.remove('active'); loadContent(); }
+
+function updateUI() {
+  if (!currentUser) return;
+  const isSuper = currentUser.role === 'super';
+  
+  document.getElementById('admin-float-btn').style.display = 'flex';
+  document.getElementById('dash-user-name').innerText = currentUser.username + (isSuper?' (👑)':'');
+  
+  const superMenu = document.getElementById('super-admin-menu');
+  if(superMenu) superMenu.style.display = isSuper ? 'flex' : 'none';
+  
+  document.getElementById("cornerLogin").innerText = "🔓";
+}
 
 async function loadDashSection(section) {
   const content = document.getElementById('dash-content');
@@ -60,20 +61,18 @@ async function loadDashSection(section) {
   event.target.classList.add('active');
 
   if (section === 'users') {
+    // ... (كود المستخدمين كما هو) ...
     try {
       const res = await api('/users');
-      let html = `
-        <div style="background:#1a1a1a; padding:15px; border-radius:8px; margin-bottom:20px;">
-          <h4 style="color:var(--gold); margin-top:0">إضافة مشرف جديد</h4>
+      let html = `<div style="background:#1a1a1a; padding:15px; border-radius:8px; margin-bottom:20px;">
+          <h4 style="color:var(--gold); margin-top:0">إضافة مشرف</h4>
           <form onsubmit="addUser(event)" style="display:flex; gap:10px; flex-wrap:wrap">
             <input name="u" placeholder="الاسم" required style="margin:0;flex:1">
             <input name="p" placeholder="كلمة السر" required style="margin:0;flex:1">
             <select name="r" style="margin:0;flex:1;background:#222;color:#fff"><option value="mod">مشرف</option><option value="super">رئيسي</option></select>
             <button class="btn">إضافة</button>
           </form>
-        </div>
-        <h4 style="color:#fff">قائمة المشرفين</h4>
-        <table class="admin-table"><thead><tr><th>الاسم</th><th>الدور</th><th>إجراء</th></tr></thead><tbody>`;
+        </div><table class="admin-table"><thead><tr><th>الاسم</th><th>الدور</th><th>إجراء</th></tr></thead><tbody>`;
       res.data.forEach(u => {
         html += `<tr><td>${u.username}</td><td>${u.role==='super'?'👑 رئيسي':'👤 مشرف'}</td><td>${u.username!==currentUser.username ? `<button class="btn-danger" style="padding:5px 10px" onclick="del('users','${u._id}', true)">حذف</button>` : '-'}</td></tr>`;
       });
@@ -82,12 +81,13 @@ async function loadDashSection(section) {
 
   } else if (section === 'maintenance') {
     const status = isMaintenance ? "مفعل (الموقع مغلق)" : "معطل (الموقع يعمل)";
-    const color = isMaintenance ? "var(--danger)" : "var(--success)";
-    content.innerHTML = `<div style="text-align:center; margin-top:50px"><h2 style="color:${color}">${status}</h2><p style="color:#aaa">عند تفعيل الصيانة، لن يتمكن الزوار من رؤية المحتوى.</p><button class="btn" style="padding:15px 30px; font-size:1.1rem; margin-top:20px" onclick="toggleMaintenance()">${isMaintenance ? "إلغاء وضع الصيانة ✅" : "تفعيل وضع الصيانة 🛠️"}</button></div>`;
+    content.innerHTML = `<div style="text-align:center; margin-top:50px"><h2 style="color:${isMaintenance?'var(--danger)':'var(--success)'}">${status}</h2><button class="btn" style="padding:15px 30px; margin-top:20px" onclick="toggleMaintenance()">${isMaintenance ? "إلغاء الصيانة ✅" : "تفعيل الصيانة 🛠️"}</button></div>`;
 
   } else if (section.startsWith('manage-')) {
     const type = section.split('-')[1];
     const titles = { books: "الكتب", tips: "الإرشادات", posts: "المشاركات" };
+    
+    // فورم الإضافة
     let formHtml = '';
     if(type === 'books') formHtml = `<input id="new-t" placeholder="عنوان الكتاب"><input id="new-u" placeholder="رابط الكتاب">`;
     else if(type === 'tips') formHtml = `<textarea id="new-t" rows="2" placeholder="نص الإرشاد"></textarea>`;
@@ -95,23 +95,64 @@ async function loadDashSection(section) {
 
     content.innerHTML = `<div style="background:#1a1a1a; padding:15px; border-radius:8px; margin-bottom:20px;"><h4 style="color:var(--gold); margin-top:0">إضافة ${titles[type]}</h4><div style="display:flex; flex-direction:column; gap:10px">${formHtml}<button class="btn" onclick="addItem('${type}')">نشر</button></div></div><h4 style="color:#fff">قائمة ${titles[type]}</h4><div id="dash-list">جاري الجلب...</div>`;
     
+    // جلب البيانات
     try {
       const res = await api(`/${type}`);
       const listDiv = document.getElementById('dash-list');
       if(res.data.length === 0) { listDiv.innerHTML = "لا يوجد محتوى"; return; }
-      let table = `<table class="admin-table"><thead><tr><th>المحتوى/العنوان</th><th>إجراء</th></tr></thead><tbody>`;
+      
+      let table = `<table class="admin-table"><thead><tr><th>العنوان/المحتوى</th><th>إجراء</th></tr></thead><tbody>`;
       res.data.forEach(i => {
-        table += `<tr><td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${i.title || i.text}</td><td><button class="btn-outline" style="padding:5px 10px; font-size:0.8rem; margin-left:5px" onclick="editItem('${type}','${i._id}','${(i.title||i.text).replace(/'/g,"")}')">تعديل</button><button class="btn-danger" style="padding:5px 10px; font-size:0.8rem" onclick="del('${type}','${i._id}', true)">حذف</button></td></tr>`;
+        // تشفير البيانات لتمريرها بأمان داخل HTML
+        const safeTitle = encodeURIComponent(i.title || i.text || "");
+        const safeDesc = encodeURIComponent(i.description || i.url || "");
+        
+        table += `<tr>
+          <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${i.title || i.text}</td>
+          <td>
+            <button class="btn-outline" style="padding:5px 10px; font-size:0.8rem; margin-left:5px" 
+              onclick="editItem('${type}', '${i._id}', decodeURIComponent('${safeTitle}'), decodeURIComponent('${safeDesc}'))">تعديل</button>
+            <button class="btn-danger" style="padding:5px 10px; font-size:0.8rem" onclick="del('${type}', '${i._id}', true)">حذف</button>
+          </td>
+        </tr>`;
       });
       listDiv.innerHTML = table + `</tbody></table>`;
     } catch { document.getElementById('dash-list').innerHTML = "فشل"; }
   }
 }
 
+// --- دالة التعديل الجديدة (الذكية) ---
+async function editItem(type, id, oldVal1, oldVal2) {
+  let body = {};
+  
+  if(type === 'tips') {
+    const text = prompt("تعديل النص:", oldVal1);
+    if(text === null) return;
+    body = { text };
+  } else if (type === 'books') {
+    const title = prompt("عنوان الكتاب:", oldVal1);
+    if(title === null) return;
+    const url = prompt("رابط الكتاب:", oldVal2);
+    if(url === null) return;
+    body = { title, url };
+  } else if (type === 'posts') {
+    const title = prompt("عنوان المشاركة:", oldVal1);
+    if(title === null) return;
+    const description = prompt("وصف المشاركة:", oldVal2);
+    if(description === null) return;
+    body = { title, description };
+  }
+
+  try {
+    await api(`/${type}/${id}`, 'PUT', body);
+    showToast("تم التحديث");
+    loadDashSection('manage-'+type); // تحديث القائمة
+  } catch {}
+}
+
 async function addUser(e) {
   e.preventDefault();
-  const u = e.target.u.value; const p = e.target.p.value; const r = e.target.r.value;
-  try { await api('/users', 'POST', { username:u, password:p, role:r }); showToast("تم"); loadDashSection('users'); } catch {}
+  try { await api('/users', 'POST', { username:e.target.u.value, password:e.target.p.value, role:e.target.r.value }); showToast("تم"); loadDashSection('users'); } catch {}
 }
 
 async function addItem(type) {
@@ -130,15 +171,6 @@ async function addItem(type) {
     }
   }
   try { await api(`/${type}`, 'POST', body); showToast("تم النشر"); loadDashSection('manage-'+type); } catch {}
-}
-
-async function editItem(type, id, oldVal) {
-  const newVal = prompt("تعديل النص/العنوان:", oldVal);
-  if(newVal && newVal !== oldVal) {
-    const body = type==='tips' ? {text:newVal} : {title:newVal};
-    await api(`/${type}/${id}`, 'PUT', body);
-    showToast("تم"); loadDashSection('manage-'+type);
-  }
 }
 
 async function del(type, id, refreshDash=false) {
@@ -170,8 +202,7 @@ document.getElementById('login-form').onsubmit = async (e) => {
       sessionStorage.setItem("mosa_user", JSON.stringify(currentUser));
       document.getElementById('login-modal').classList.remove('active');
       document.getElementById("maintenance-overlay").style.display = "none";
-      document.getElementById('admin-float-btn').style.display = 'flex';
-      document.getElementById("cornerLogin").innerText = "🔓"; // تغيير أيقونة القفل
+      updateUI();
       openDashboard();
       showToast(`مرحباً ${json.username}`);
     } else showToast(json.message, "error");
@@ -185,7 +216,7 @@ function logout() {
 
 async function loadContent() { loadVideos(); loadBooks(); loadTips(); loadPosts(); }
 
-// دوال العرض العامة
+// --- العرض العام (بدون أزرار حذف) ---
 async function loadVideos() {
   const c = document.getElementById("videos-grid");
   try {
