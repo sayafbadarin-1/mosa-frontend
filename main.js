@@ -1,3 +1,4 @@
+// ==================== إعدادات ====================
 const CONFIG = {
   BACKEND: "https://mosa-backend-dr63.onrender.com", 
   CLOUDINARY: { CLOUD_NAME: "dkdnq0zj3", PRESET: "unsigned_posts_preset" },
@@ -7,6 +8,7 @@ const CONFIG = {
 let currentUser = JSON.parse(sessionStorage.getItem("mosa_user")) || null;
 let isMaintenance = false;
 
+// --- التشغيل ---
 (async function init() {
   await checkMaintenance();
   
@@ -15,9 +17,14 @@ let isMaintenance = false;
 
   if(document.getElementById('favorites-grid')) loadFavorites();
   
-  document.getElementById("cornerLogin").addEventListener("click", () => {
-    if(currentUser) openDashboard(); else document.getElementById('login-modal').classList.add('active');
-  });
+  // تفعيل زر القفل
+  const lockBtn = document.getElementById("cornerLogin");
+  if(lockBtn) {
+      lockBtn.addEventListener("click", () => {
+        if(currentUser) openDashboard(); 
+        else document.getElementById('login-modal').classList.add('active');
+      });
+  }
 
   if (currentUser) updateUI();
   loadContent();
@@ -44,11 +51,15 @@ function closeDashboard() { document.getElementById('dashboard-overlay').classLi
 function updateUI() {
   if (!currentUser) return;
   const isSuper = currentUser.role === 'super';
+  
   document.getElementById('admin-float-btn').style.display = 'flex';
   document.getElementById('dash-user-name').innerText = currentUser.username;
+  
   const superMenu = document.getElementById('super-admin-menu');
   if(superMenu) superMenu.style.display = isSuper ? 'flex' : 'none';
-  document.getElementById("cornerLogin").innerText = "🔓";
+  
+  const lockBtn = document.getElementById("cornerLogin");
+  if(lockBtn) lockBtn.innerText = "🔓";
 }
 
 async function loadDashSection(section) {
@@ -92,13 +103,55 @@ async function loadDashSection(section) {
       if(res.data.length === 0) { document.getElementById('dash-list').innerHTML = "لا يوجد محتوى"; return; }
       let table = `<table class="admin-table"><thead><tr><th>المحتوى</th><th>إجراء</th></tr></thead><tbody>`;
       res.data.forEach(i => {
+        // هنا التصحيح: نمرر النص مشفراً ولا نفك تشفيره هنا
         const safeTitle = encodeURIComponent(i.title || i.text || "");
         const safeDesc = encodeURIComponent(i.description || i.url || "");
-        table += `<tr><td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${i.title || i.text}</td><td><button class="btn-outline" style="padding:5px 10px; font-size:0.8rem; margin-left:5px" onclick="editItem('${type}','${i._id}','${decodeURIComponent(safeTitle)}','${decodeURIComponent(safeDesc)}')">تعديل</button><button class="btn-danger" style="padding:5px 10px; font-size:0.8rem" onclick="del('${type}','${i._id}', true)">حذف</button></td></tr>`;
+        
+        table += `<tr>
+          <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${i.title || i.text}</td>
+          <td>
+            <button class="btn-outline" style="padding:5px 10px; font-size:0.8rem; margin-left:5px" 
+              onclick="editItem('${type}','${i._id}','${safeTitle}','${safeDesc}')">تعديل</button>
+            <button class="btn-danger" style="padding:5px 10px; font-size:0.8rem" onclick="del('${type}','${i._id}', true)">حذف</button>
+          </td>
+        </tr>`;
       });
       document.getElementById('dash-list').innerHTML = table + `</tbody></table>`;
     } catch { document.getElementById('dash-list').innerHTML = "فشل"; }
   }
+}
+
+// --- دالة التعديل (المصححة) ---
+async function editItem(type, id, enc1, enc2) {
+  // فك التشفير هنا داخل الدالة
+  const oldVal1 = decodeURIComponent(enc1);
+  const oldVal2 = decodeURIComponent(enc2);
+  
+  let body = {};
+  
+  if(type === 'tips') {
+    const text = prompt("تعديل النص:", oldVal1);
+    if(text === null) return;
+    body = { text };
+  } else if (type === 'books') {
+    const title = prompt("عنوان الكتاب:", oldVal1);
+    if(title === null) return;
+    const url = prompt("رابط الكتاب:", oldVal2);
+    if(url === null) return;
+    body = { title, url };
+  } else if (type === 'posts') {
+    const title = prompt("العنوان:", oldVal1);
+    if(title === null) return;
+    const description = prompt("الوصف:", oldVal2);
+    if(description === null) return;
+    body = { title, description };
+  }
+
+  try {
+    await api(`/${type}/${id}`, 'PUT', body);
+    showToast("تم التحديث");
+    await loadDashSection('manage-'+type); // تحديث القائمة تلقائياً
+  } catch {}
 }
 
 async function addUser(e) {
@@ -113,11 +166,15 @@ async function changeUserPass(id) {
 
 async function changeMyPass() {
   const p = prompt("كلمة مرورك الجديدة:");
-  if(p) { 
-    // نحتاج معرف المستخدم الحالي، سنبحث عنه في مصفوفة المستخدمين أو نمرره بطريقة أخرى.
-    // للتبسيط، سنرسل طلب خاص إذا دعمناه، أو نستخدم الطريقة الحالية بتحديث الجلسة.
-    // بما أننا لا نملك ID المستخدم في الجلسة حالياً، سأضيف تحسيناً صغيراً في المستقبل.
-    alert("يرجى تغيير كلمة المرور من خلال المشرف الرئيسي حالياً."); 
+  // هنا نستخدم مسار تعديل المستخدمين، لكن كيف نحصل على ID الخاص بي؟
+  // بما أننا لا نخزنه، سنبحث عنه في مصفوفة Users مؤقتاً، أو نطلب من المستخدم اسمه للتأكيد
+  // الحل الأبسط الآن: إذا كان رئيسي، يمكنه تعديل نفسه من قائمة المشرفين.
+  // سنوجهه لقائمة المشرفين
+  if(currentUser.role === 'super') {
+      alert("سيتم نقلك لقائمة المشرفين، ابحث عن اسمك واضغط 'تغيير السر'");
+      loadDashSection('users');
+  } else {
+      alert("يرجى طلب تغيير كلمة المرور من المشرف الرئيسي");
   }
 }
 
@@ -149,30 +206,13 @@ async function addItem(type) {
   } catch {}
 }
 
-async function editItem(type, id, oldVal1, oldVal2) {
-  let body = {};
-  if(type === 'tips') {
-    const text = prompt("تعديل النص:", oldVal1);
-    if(text === null) return;
-    body = { text };
-  } else if (type === 'books') {
-    const title = prompt("عنوان الكتاب:", oldVal1); if(title===null)return;
-    const url = prompt("رابط الكتاب:", oldVal2); if(url===null)return;
-    body = { title, url };
-  } else if (type === 'posts') {
-    const title = prompt("العنوان:", oldVal1); if(title===null)return;
-    const description = prompt("الوصف:", oldVal2); if(description===null)return;
-    body = { title, description };
-  }
-  try { await api(`/${type}/${id}`, 'PUT', body); showToast("تم"); await loadDashSection('manage-'+type); } catch {}
-}
-
 async function del(type, id, refreshDash=false) {
   if(!confirm("حذف؟")) return;
   try {
     await api(`/${type}/${id}`, 'DELETE');
     showToast("تم الحذف");
     if(refreshDash) {
+       // ننتظر قليلاً ثم نحدث
        if(type==='users') await loadDashSection('users'); 
        else await loadDashSection('manage-'+type);
     }
@@ -227,7 +267,6 @@ async function loadTips() {
   }).join(''); } catch{} 
 }
 
-// ... (باقي الدوال loadVideos/Books/Posts تبقى كما هي من الكود السابق) ...
 async function loadVideos() {
   const c = document.getElementById("videos-grid");
   try {
