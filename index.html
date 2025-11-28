@@ -45,23 +45,26 @@
     <div class="dash-header">
       <h3 style="color:var(--gold); margin:0;">لوحة التحكم ⚙️</h3>
       <div style="display:flex; align-items:center; gap:10px;">
-        <span id="dash-user-name" style="font-size:0.9rem; opacity:0.7"></span>
-        <button class="btn" onclick="changeMyPass()" style="padding:5px 10px; font-size:0.8rem">🔑</button>
+        <span id="dash-user-name" style="font-size:0.9rem; opacity:0.8"></span>
+        <button class="btn" onclick="changeMyPass()" style="padding:5px 10px; font-size:0.8rem">🔑 كلمة السر</button>
         <button class="btn btn-danger" onclick="logout()" style="padding:5px 10px; font-size:0.8rem">خروج</button>
       </div>
     </div>
+    
     <div class="dash-body">
       <div class="dash-sidebar">
         <div id="super-admin-menu" style="display:none; flex-direction:column; gap:5px; border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:10px;">
           <div class="dash-nav-btn" onclick="loadDashSection('users')" style="color:var(--danger)">👥 المشرفين</div>
           <div class="dash-nav-btn" onclick="loadDashSection('maintenance')" style="color:var(--danger)">🛠️ الصيانة</div>
         </div>
+        
         <div class="dash-nav-btn" onclick="loadDashSection('manage-books')">📚 الكتب</div>
         <div class="dash-nav-btn" onclick="loadDashSection('manage-tips')">🌿 الإرشادات</div>
         <div class="dash-nav-btn" onclick="loadDashSection('manage-posts')">✍️ المشاركات</div>
         <div style="flex:1"></div>
         <div class="dash-nav-btn" onclick="closeDashboard()">🏠 الموقع</div>
       </div>
+
       <div id="dash-content" class="dash-content"></div>
     </div>
   </div>
