@@ -20,9 +20,9 @@
 
   <div id="welcome-overlay" class="modal-overlay active">
     <div class="modal-box">
-      <h3 style="color:#fff">أهلاً بكم في موقع الشيخ</h3>
+      <h3 style="color:var(--text)">أهلاً بكم في موقع الشيخ</h3>
       <h1 style="color:var(--gold)">موسى أحمد الخلايلة</h1>
-      <p style="color:#aaa">صلِّ على الحبيب المصطفى ﷺ</p>
+      <p style="color:#888">صلِّ على الحبيب المصطفى ﷺ</p>
       <button class="btn" onclick="enterSite()">اللهم صلِّ وسلم عليه (دخول)</button>
     </div>
   </div>
@@ -44,33 +44,32 @@
   <div id="dashboard-overlay">
     <div class="dash-header">
       <h3 style="color:var(--gold); margin:0;">لوحة التحكم ⚙️</h3>
-      <div style="display:flex; align-items:center; gap:15px;">
-        <span id="dash-user-name" style="font-size:0.9rem; color:#aaa;"></span>
-        <button class="btn btn-danger" onclick="logout()" style="padding:5px 12px; font-size:0.8rem;">خروج</button>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span id="dash-user-name" style="font-size:0.9rem; opacity:0.7"></span>
+        <button class="btn" onclick="changeMyPass()" style="padding:5px 10px; font-size:0.8rem">🔑</button>
+        <button class="btn btn-danger" onclick="logout()" style="padding:5px 10px; font-size:0.8rem">خروج</button>
       </div>
     </div>
-    
     <div class="dash-body">
       <div class="dash-sidebar">
         <div id="super-admin-menu" style="display:none; flex-direction:column; gap:5px; border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:10px;">
-          <div class="dash-nav-btn" onclick="loadDashSection('users')" style="color:#e74c3c;">👥 إدارة المشرفين</div>
-          <div class="dash-nav-btn" onclick="loadDashSection('maintenance')" style="color:#e74c3c;">🛠️ وضع الصيانة</div>
+          <div class="dash-nav-btn" onclick="loadDashSection('users')" style="color:var(--danger)">👥 المشرفين</div>
+          <div class="dash-nav-btn" onclick="loadDashSection('maintenance')" style="color:var(--danger)">🛠️ الصيانة</div>
         </div>
-        
-        <div class="dash-nav-btn" onclick="loadDashSection('manage-books')">📚 إدارة المكتبة</div>
-        <div class="dash-nav-btn" onclick="loadDashSection('manage-tips')">🌿 إدارة الإرشادات</div>
-        <div class="dash-nav-btn" onclick="loadDashSection('manage-posts')">✍️ إدارة المشاركات</div>
+        <div class="dash-nav-btn" onclick="loadDashSection('manage-books')">📚 الكتب</div>
+        <div class="dash-nav-btn" onclick="loadDashSection('manage-tips')">🌿 الإرشادات</div>
+        <div class="dash-nav-btn" onclick="loadDashSection('manage-posts')">✍️ المشاركات</div>
         <div style="flex:1"></div>
-        <div class="dash-nav-btn" onclick="closeDashboard()">🏠 العودة للموقع</div>
+        <div class="dash-nav-btn" onclick="closeDashboard()">🏠 الموقع</div>
       </div>
-
-      <div id="dash-content" class="dash-content">
-        <p style="color:#777; text-align:center; margin-top:50px;">اختر قسماً من القائمة للبدء</p>
-      </div>
+      <div id="dash-content" class="dash-content"></div>
     </div>
   </div>
 
-  <button id="admin-float-btn" onclick="openDashboard()" style="display:none;" title="لوحة التحكم">⚙️</button>
+  <div class="float-btn-group" style="position:fixed; top:15px; right:15px; display:flex; gap:10px; z-index:2000;">
+    <button class="round-btn" onclick="toggleTheme()" title="تغيير المظهر">🌓</button>
+    <button id="admin-float-btn" class="round-btn" onclick="openDashboard()" style="display:none;" title="لوحة التحكم">⚙️</button>
+  </div>
 
   <header class="hero">
     <div class="hero-content">
@@ -93,21 +92,11 @@
     <section id="videos-page" class="page visible">
       <div id="videos-grid" class="grid"><div class="skeleton"></div></div>
     </section>
-
-    <section id="books-page" class="page">
-      <div id="books-grid" class="grid"></div>
-    </section>
-
-    <section id="tips-page" class="page">
-      <div id="tips-grid" class="grid"></div>
-    </section>
-
-    <section id="posts-page" class="page">
-      <div id="posts-grid" class="grid"></div>
-    </section>
-
+    <section id="books-page" class="page"><div id="books-grid" class="grid"></div></section>
+    <section id="tips-page" class="page"><div id="tips-grid" class="grid"></div></section>
+    <section id="posts-page" class="page"><div id="posts-grid" class="grid"></div></section>
     <section id="favorites-page" class="page">
-      <div style="text-align:center;color:var(--gold)">العناصر التي حفظتها</div>
+      <div style="text-align:center;color:var(--gold);margin-bottom:20px">العناصر المحفوظة</div>
       <div id="favorites-grid" class="grid"></div>
     </section>
   </main>
