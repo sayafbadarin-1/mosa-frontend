@@ -1,5 +1,7 @@
 const CONFIG = {
-  BACKEND: "https://mosa-backend-dr63.onrender.com", 
+  // 👇👇👇 غير الرابط هذا برابط موقعك الجديد من Vercel 👇👇👇
+  BACKEND: "https://mosa-backend.vercel.app",
+  
   CLOUDINARY: { CLOUD_NAME: "dkdnq0zj3", PRESET: "unsigned_posts_preset" },
   YOUTUBE: "UChFRy4s3_0MVJ3Hmw2AMcoQ"
 };
@@ -113,8 +115,6 @@ async function changeUserPass(id) {
 async function changeMyPass() {
   const p = prompt("كلمة مرورك الجديدة:");
   if(p) { 
-    // للأسف ليس لدينا ID المستخدم الحالي في الجلسة، لذا سنطلب من السيرفر تحديث "المستخدم الحالي" عبر توكن خاص أو سنبحث عنه
-    // الحل الأسرع: بما أنك المشرف الرئيسي، ادخل لقائمة المشرفين وعدل نفسك!
     if(currentUser.role === 'super') {
         alert("انتقل لقائمة المشرفين، وابحث عن اسمك واضغط 'تغيير السر'");
         loadDashSection('users');
@@ -148,7 +148,7 @@ async function addItem(type) {
   try { 
     await api(`/${type}`, 'POST', body); 
     showToast("تم النشر"); 
-    await loadDashSection('manage-'+type); // تحديث القائمة فوراً
+    await loadDashSection('manage-'+type); 
   } catch {}
 }
 
@@ -237,7 +237,6 @@ async function loadTips() {
   }).join(''); } catch{} 
 }
 
-// ... (Load Videos/Books/Posts كما هي) ...
 async function loadVideos() {
   const c = document.getElementById("videos-grid");
   try {
